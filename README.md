@@ -8,7 +8,13 @@ A cryptocurrency trading bot for QRL/USDT pair on MEXC exchange, implementing a 
 - **Risk Management**: Configurable position limits and order sizes
 - **Automated Trading**: Autonomous limit order placement
 - **Position Tracking**: SQLite-based position state persistence
-- **Web Dashboard**: Real-time monitoring via FastAPI interface
+- **Enhanced Web Dashboard**: Real-time monitoring with comprehensive data display
+  - Market data (price, 24h change, volume, high/low)
+  - Position & risk metrics (current position, usage %, trading status)
+  - Strategy indicators (EMA20, EMA60, trend analysis)
+  - Trading signals (buy conditions with visual feedback)
+  - Configuration parameters
+  - Auto-refresh every 60 seconds
 - **Cloud Ready**: Docker support for Google Cloud Run deployment
 
 ## 📋 Prerequisites
@@ -133,21 +139,27 @@ Edit `config.py`:
 
 ```
 qrl/
-├── config.py                  # Configuration
+├── config.py                  # Configuration & environment variables
 ├── exchange.py                # MEXC integration
-├── main.py                   # Trading logic
-├── risk.py                   # Risk checks
-├── state.py                  # Position tracking
-├── strategy.py               # EMA strategy
-├── web/app.py                # Dashboard
-├── Dockerfile                # Container image
-├── cloudbuild.yaml           # Cloud Build config
-├── AUTHENTICATION_GUIDE.md   # Cloud Run authentication guide
-└── MEXC_API_SETUP.md        # MEXC API setup guide
+├── main.py                    # Trading logic & execution
+├── risk.py                    # Risk management checks
+├── state.py                   # Position tracking (SQLite)
+├── strategy.py                # EMA-based strategy
+├── utils.py                   # Utility functions
+├── web/
+│   ├── app.py                 # Enhanced dashboard (FastAPI)
+│   └── templates/
+│       └── index.html         # Minimalist UI with rich data
+├── Dockerfile                 # Container image
+├── cloudbuild.yaml            # Cloud Build config
+└── PROJECT_STRUCTURE.md       # Detailed architecture guide
 ```
+
+For detailed module descriptions and extension guide, see **[PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md)**.
 
 ## 📚 Documentation
 
+- **[PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md)** - Comprehensive project structure and extension guide (專案結構完整說明)
 - **[MEXC_API_SETUP.md](MEXC_API_SETUP.md)** - Comprehensive guide for setting up MEXC API credentials
 - **[AUTHENTICATION_GUIDE.md](AUTHENTICATION_GUIDE.md)** - Detailed guide for Cloud Run authentication (public vs IAM)
 - **[快速開始.md](快速開始.md)** - Chinese quick start guide

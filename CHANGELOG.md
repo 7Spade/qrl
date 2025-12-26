@@ -2,6 +2,46 @@
 
 ## [Unreleased]
 
+### Added
+- **Enhanced Web Dashboard** - Comprehensive monitoring interface with rich data display
+  - Market data: price, 24h change, volume, high/low
+  - Position & risk: current position, usage percentage, trading status
+  - Strategy indicators: EMA20, EMA60, trend analysis
+  - Trading signals: buy condition checks with visual feedback
+  - Configuration display: order size, price offset, max position
+  - 24h price range: highest, lowest, volatility
+  - Minimalist terminal-style UI (green on black)
+  - Responsive design (mobile/tablet/desktop)
+  - Auto-refresh every 60 seconds
+  - API endpoint `/api/data` for JSON data access
+- **Project Structure Documentation** - Comprehensive guide for developers
+  - Complete module descriptions and responsibilities
+  - Data flow diagrams
+  - Extension guide (add strategies, indicators, notifications)
+  - Best practices and maintenance checklist
+  - FAQ section
+- **Utility Functions Module** (`utils.py`) - Helper functions for common operations
+  - Price formatting
+  - Percentage calculations
+  - Timestamp handling
+  - Safe division operations
+  - Position usage calculations
+
+### Changed
+- **Web Dashboard UI** - Completely redesigned for better data visibility
+  - From 4 simple fields to 6 comprehensive information cards
+  - Added visual indicators for status (colors, progress bars)
+  - Improved layout with CSS Grid for responsive design
+  - Enhanced error handling with graceful degradation
+- **Web App Backend** (`web/app.py`) - Enhanced data processing
+  - Integrated strategy calculations for real-time indicators
+  - Added risk management status checks
+  - Improved ticker data fetching with more fields
+  - Better error handling and default values
+  - Added comprehensive API endpoint for external access
+
+## [Previous Releases]
+
 ### Changed
 - **Major Project Simplification** - Removed 1.7MB of unrelated content while maintaining 100% functionality
   - Removed entire `.github/` directory containing generic AI agent/prompt templates (17 files, ~7,906 lines)
