@@ -191,8 +191,8 @@ def register_callbacks(app, config, state_manager, exchange_client,
                     cache_enabled = cache_stats.get('enabled', False)
                     cache_connected = cache_stats.get('status') == 'connected'
                     cache_keys = cache_stats.get('cache_keys', 0)
-                except:
-                    pass
+                except Exception as e:
+                    logger.warning(f"Error fetching cache stats: {e}")
             
             return create_system_card(
                 health_status=health_status,

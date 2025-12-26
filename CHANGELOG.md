@@ -35,6 +35,8 @@
 - Container startup: Added proper PORT environment variable handling
 - Balance display: Fixed balance fetching to use correct API method and data structure
 - Balance display: Added debug logging for balance data troubleshooting
+- Error handling: Replaced bare `except:` clause with proper exception handling in cache stats callback
+- Error handling: Added logging for cache stats fetch errors to improve debugging
 ### Improved
 - **Reduced cognitive load**: Smaller, focused files instead of one large file
 - **Better separation of concerns**: UI, logic, and data handling are distinct
