@@ -1,3 +1,9 @@
+"""
+Configuration module for QRL trading bot.
+
+This module loads environment variables and defines trading parameters
+including position limits, order sizes, and price offsets.
+"""
 from dotenv import load_dotenv
 import os
 

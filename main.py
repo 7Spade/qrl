@@ -1,3 +1,16 @@
+"""
+Main execution script for QRL trading bot.
+
+This script orchestrates the complete trading cycle:
+1. Fetch historical market data
+2. Evaluate trading strategy
+3. Check risk management rules
+4. Place limit buy orders
+5. Update position state
+
+Usage:
+    python main.py
+"""
 import os
 from exchange import get_exchange
 from strategy import should_buy
