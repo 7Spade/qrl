@@ -29,7 +29,7 @@ steps:
             --set-env-vars SYMBOL=QRL/USDT \
             --no-allow-unauthenticated
         else
-          echo "Deploying with public access (no authentication required)"
+          echo "Deploying with public access (authentication not required)"
           gcloud run deploy qrl-bot \
             --image gcr.io/$PROJECT_ID/qrl-bot:${_IMAGE_TAG} \
             --region asia-east1 \
@@ -38,7 +38,14 @@ steps:
             --set-env-vars SYMBOL=QRL/USDT \
             --allow-unauthenticated
 
-          # Grant allUsers the invoker role for public access
+          # Grant specific user access for private control
+          echo "Setting IAM policy for ac7x7x@gmail.com..."
+          gcloud run services add-iam-policy-binding qrl-bot \
+            --region=asia-east1 \
+            --member="user:ac7x7x@gmail.com" \
+            --role="roles/run.invoker"
+
+          # Grant allUsers for public access
           echo "Setting IAM policy for public access..."
           gcloud run services add-iam-policy-binding qrl-bot \
             --region=asia-east1 \
