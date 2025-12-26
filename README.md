@@ -339,7 +339,7 @@ export PROJECT_ID="YOUR_PROJECT_ID"
 export REGION="asia-east1"
 
 # 建立每日排程（上午 9:00）
-gcloud scheduler jobs create run qrl-trading-daily \
+gcloud scheduler jobs create http qrl-trading-daily \
   --location=$REGION \
   --schedule="0 9 * * *" \
   --time-zone="Asia/Taipei" \

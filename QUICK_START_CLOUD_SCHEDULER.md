@@ -22,7 +22,7 @@ export PROJECT_ID="YOUR_PROJECT_ID"
 export REGION="asia-east1"
 
 # 建立排程 1 (早上 6:00)
-gcloud scheduler jobs create run qrl-trading-morning \
+gcloud scheduler jobs create http qrl-trading-morning \
   --location=$REGION \
   --schedule="0 6 * * *" \
   --time-zone="Asia/Taipei" \
@@ -31,7 +31,7 @@ gcloud scheduler jobs create run qrl-trading-morning \
   --oauth-service-account-email="$PROJECT_ID@appspot.gserviceaccount.com"
 
 # 建立排程 2 (中午 12:00) - 可選
-gcloud scheduler jobs create run qrl-trading-noon \
+gcloud scheduler jobs create http qrl-trading-noon \
   --location=$REGION \
   --schedule="0 12 * * *" \
   --time-zone="Asia/Taipei" \
@@ -40,7 +40,7 @@ gcloud scheduler jobs create run qrl-trading-noon \
   --oauth-service-account-email="$PROJECT_ID@appspot.gserviceaccount.com"
 
 # 建立排程 3 (傍晚 18:00) - 可選
-gcloud scheduler jobs create run qrl-trading-evening \
+gcloud scheduler jobs create http qrl-trading-evening \
   --location=$REGION \
   --schedule="0 18 * * *" \
   --time-zone="Asia/Taipei" \
@@ -107,7 +107,7 @@ gcloud scheduler jobs pause qrl-trading-morning --location=asia-east1
 gcloud scheduler jobs resume qrl-trading-morning --location=asia-east1
 
 # 修改排程時間
-gcloud scheduler jobs update run qrl-trading-morning \
+gcloud scheduler jobs update http qrl-trading-morning \
   --location=asia-east1 \
   --schedule="0 10 * * *"
 ```

@@ -106,7 +106,7 @@ class RateLimitedStrategy(BaseStrategy):
 
 ```bash
 # 每日上午 9:00 執行
-gcloud scheduler jobs create run qrl-trading-daily \
+gcloud scheduler jobs create http qrl-trading-daily \
   --schedule="0 9 * * *" \
   --time-zone="Asia/Taipei"
 ```
@@ -120,17 +120,17 @@ gcloud scheduler jobs create run qrl-trading-daily \
 
 ```bash
 # 早上 6:00
-gcloud scheduler jobs create run qrl-trading-morning \
+gcloud scheduler jobs create http qrl-trading-morning \
   --schedule="0 6 * * *" \
   --time-zone="Asia/Taipei"
 
 # 中午 12:00
-gcloud scheduler jobs create run qrl-trading-noon \
+gcloud scheduler jobs create http qrl-trading-noon \
   --schedule="0 12 * * *" \
   --time-zone="Asia/Taipei"
 
 # 傍晚 18:00
-gcloud scheduler jobs create run qrl-trading-evening \
+gcloud scheduler jobs create http qrl-trading-evening \
   --schedule="0 18 * * *" \
   --time-zone="Asia/Taipei"
 ```
@@ -144,7 +144,7 @@ gcloud scheduler jobs create run qrl-trading-evening \
 
 ```bash
 # 工作日每 4 小時執行一次
-gcloud scheduler jobs create run qrl-trading-regular \
+gcloud scheduler jobs create http qrl-trading-regular \
   --schedule="0 */4 * * 1-5" \
   --time-zone="Asia/Taipei"
 ```

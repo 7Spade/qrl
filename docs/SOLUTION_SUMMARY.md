@@ -99,7 +99,7 @@ timezone: "Asia/Taipei"
 **執行命令** (無腳本):
 ```bash
 # 純 gcloud 命令，無需任何腳本
-gcloud scheduler jobs create run qrl-trading-morning \
+gcloud scheduler jobs create http qrl-trading-morning \
   --location=asia-east1 \
   --schedule="0 6 * * *" \
   --time-zone="Asia/Taipei" \
@@ -178,7 +178,7 @@ gcloud builds submit --config cloudbuild-job.yaml
 
 ```bash
 # 作業 1
-gcloud scheduler jobs create run qrl-trading-morning \
+gcloud scheduler jobs create http qrl-trading-morning \
   --location=asia-east1 \
   --schedule="0 6 * * *" \
   --time-zone="Asia/Taipei" \
@@ -187,7 +187,7 @@ gcloud scheduler jobs create run qrl-trading-morning \
   --oauth-service-account-email="$PROJECT_ID@appspot.gserviceaccount.com"
 
 # 作業 2
-gcloud scheduler jobs create run qrl-trading-noon \
+gcloud scheduler jobs create http qrl-trading-noon \
   --location=asia-east1 \
   --schedule="0 12 * * *" \
   --time-zone="Asia/Taipei" \
@@ -196,7 +196,7 @@ gcloud scheduler jobs create run qrl-trading-noon \
   --oauth-service-account-email="$PROJECT_ID@appspot.gserviceaccount.com"
 
 # 作業 3
-gcloud scheduler jobs create run qrl-trading-evening \
+gcloud scheduler jobs create http qrl-trading-evening \
   --location=asia-east1 \
   --schedule="0 18 * * *" \
   --time-zone="Asia/Taipei" \

@@ -61,7 +61,7 @@ export REGION="asia-east1"
 export JOB_NAME="qrl-trading-job"
 
 # 建立 Cloud Scheduler 作業（每日上午 9:00 執行）
-gcloud scheduler jobs create run qrl-trading-daily \
+gcloud scheduler jobs create http qrl-trading-daily \
   --location=$REGION \
   --schedule="0 9 * * *" \
   --time-zone="Asia/Taipei" \
@@ -133,7 +133,7 @@ Cloud Scheduler 使用 Unix cron 格式：
 
 ```bash
 # 作業 1: 早上檢查（6:00 AM）
-gcloud scheduler jobs create run qrl-trading-morning \
+gcloud scheduler jobs create http qrl-trading-morning \
   --location=asia-east1 \
   --schedule="0 6 * * *" \
   --time-zone="Asia/Taipei" \
@@ -142,7 +142,7 @@ gcloud scheduler jobs create run qrl-trading-morning \
   --oauth-service-account-email="$PROJECT_ID@appspot.gserviceaccount.com"
 
 # 作業 2: 中午檢查（12:00 PM）
-gcloud scheduler jobs create run qrl-trading-noon \
+gcloud scheduler jobs create http qrl-trading-noon \
   --location=asia-east1 \
   --schedule="0 12 * * *" \
   --time-zone="Asia/Taipei" \
@@ -151,7 +151,7 @@ gcloud scheduler jobs create run qrl-trading-noon \
   --oauth-service-account-email="$PROJECT_ID@appspot.gserviceaccount.com"
 
 # 作業 3: 傍晚檢查（6:00 PM）
-gcloud scheduler jobs create run qrl-trading-evening \
+gcloud scheduler jobs create http qrl-trading-evening \
   --location=asia-east1 \
   --schedule="0 18 * * *" \
   --time-zone="Asia/Taipei" \
@@ -165,7 +165,7 @@ gcloud scheduler jobs create run qrl-trading-evening \
 ### 重試策略
 
 ```bash
-gcloud scheduler jobs update run qrl-trading-daily \
+gcloud scheduler jobs update http qrl-trading-daily \
   --location=asia-east1 \
   --max-retry-attempts=2 \
   --max-retry-duration=3600s \
@@ -186,7 +186,7 @@ gcloud scheduler jobs resume qrl-trading-daily --location=asia-east1
 ### 更新排程
 
 ```bash
-gcloud scheduler jobs update run qrl-trading-daily \
+gcloud scheduler jobs update http qrl-trading-daily \
   --location=asia-east1 \
   --schedule="0 10 * * *" \
   --time-zone="Asia/Taipei"

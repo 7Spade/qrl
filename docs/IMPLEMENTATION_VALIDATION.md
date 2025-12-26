@@ -73,7 +73,7 @@ MEXC API + Redis
 ```bash
 # 純 gcloud 命令，無腳本
 gcloud builds submit --config cloudbuild-job.yaml
-gcloud scheduler jobs create run ...
+gcloud scheduler jobs create http ...
 ```
 
 ## 📁 新增檔案清單

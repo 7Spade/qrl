@@ -32,7 +32,7 @@ export PROJECT_ID="YOUR_PROJECT_ID"
 export REGION="asia-east1"
 
 # 建立每日排程（上午 9:00）
-gcloud scheduler jobs create run qrl-trading-daily \
+gcloud scheduler jobs create http qrl-trading-daily \
   --location=$REGION \
   --schedule="0 9 * * *" \
   --time-zone="Asia/Taipei" \
@@ -95,7 +95,7 @@ gcloud run jobs describe qrl-trading-job --region asia-east1
 #### 排程 1: 早上檢查（6:00 AM）
 
 ```bash
-gcloud scheduler jobs create run qrl-trading-morning \
+gcloud scheduler jobs create http qrl-trading-morning \
   --location=asia-east1 \
   --schedule="0 6 * * *" \
   --time-zone="Asia/Taipei" \
@@ -107,7 +107,7 @@ gcloud scheduler jobs create run qrl-trading-morning \
 #### 排程 2: 中午檢查（12:00 PM）
 
 ```bash
-gcloud scheduler jobs create run qrl-trading-noon \
+gcloud scheduler jobs create http qrl-trading-noon \
   --location=asia-east1 \
   --schedule="0 12 * * *" \
   --time-zone="Asia/Taipei" \
@@ -119,7 +119,7 @@ gcloud scheduler jobs create run qrl-trading-noon \
 #### 排程 3: 傍晚檢查（6:00 PM）
 
 ```bash
-gcloud scheduler jobs create run qrl-trading-evening \
+gcloud scheduler jobs create http qrl-trading-evening \
   --location=asia-east1 \
   --schedule="0 18 * * *" \
   --time-zone="Asia/Taipei" \
@@ -157,7 +157,7 @@ gcloud scheduler jobs describe qrl-trading-daily --location=asia-east1
 
 ```bash
 # 更改執行時間
-gcloud scheduler jobs update run qrl-trading-daily \
+gcloud scheduler jobs update http qrl-trading-daily \
   --location=asia-east1 \
   --schedule="0 10 * * *"
 
@@ -230,7 +230,7 @@ gcloud scheduler jobs describe qrl-trading-daily --location=asia-east1
 
 4. **重試設定**：建議設定適當的重試次數
    ```bash
-   gcloud scheduler jobs update run qrl-trading-daily \
+   gcloud scheduler jobs update http qrl-trading-daily \
      --location=asia-east1 \
      --max-retry-attempts=2
    ```

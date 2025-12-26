@@ -62,7 +62,7 @@ gcloud builds submit --config cloudbuild-job.yaml
 
 Step 2: 建立 Cloud Scheduler (3 個免費作業)
 ```bash
-gcloud scheduler jobs create run qrl-trading-morning \
+gcloud scheduler jobs create http qrl-trading-morning \
   --location=asia-east1 \
   --schedule="0 6 * * *" \
   --time-zone="Asia/Taipei" \
