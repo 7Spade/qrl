@@ -15,7 +15,7 @@ from typing import Dict, Any, List
 from datetime import datetime
 from pathlib import Path
 import logging
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Depends
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
@@ -35,6 +35,7 @@ app = FastAPI(title="QRL Trading Bot Dashboard")
 templates = Jinja2Templates(directory="web/views")
 
 # Initialize components with error handling
+initialization_error = None
 try:
     config = AppConfig.load()
     state_manager = StateManager()
@@ -43,11 +44,23 @@ try:
     logger.info("✅ All components initialized successfully")
 except Exception as e:
     logger.error(f"❌ Failed to initialize components: {e}")
+    initialization_error = str(e)
     # Create dummy objects to prevent crashes
     config = None
     state_manager = None
     exchange_client = None
     strategy = None
+
+
+def check_services_initialized():
+    """Check if services are properly initialized."""
+    if config is None or exchange_client is None:
+        error_msg = f"Services not initialized: {initialization_error}" if initialization_error else "Services not initialized"
+        raise HTTPException(
+            status_code=503,
+            detail=f"Service temporarily unavailable. {error_msg}"
+        )
+    return True
 
 
 @app.get("/health")
@@ -318,7 +331,7 @@ def get_logs(limit: int = 50) -> JSONResponse:
 
 
 @app.get("/api/market")
-def get_market_data() -> JSONResponse:
+def get_market_data(_: bool = Depends(check_services_initialized)) -> JSONResponse:
     """
     Get current market data with indicators and account balances.
     
@@ -377,7 +390,7 @@ def get_market_data() -> JSONResponse:
 
 
 @app.get("/api/market/chart-data")
-def get_chart_data(timeframe: str = "1h") -> JSONResponse:
+def get_chart_data(timeframe: str = "1h", _: bool = Depends(check_services_initialized)) -> JSONResponse:
     """
     Get historical price and indicator data for chart visualization.
     Data is automatically cached in Redis per MEXC API integration.
@@ -402,7 +415,10 @@ def get_chart_data(timeframe: str = "1h") -> JSONResponse:
         )
         
         if not ohlcv or len(ohlcv) == 0:
-            return JSONResponse({"error": "No data available"}, status_code=404)
+            return JSONResponse({
+                "error": "OHLCV data is empty",
+                "message": "⚠️ Waiting for market data... (Exchange may be initializing)"
+            }, status_code=200)  # 200 with error field for graceful degradation
         
         # Calculate indicators for chart
         import pandas as pd
@@ -444,7 +460,7 @@ def get_chart_data(timeframe: str = "1h") -> JSONResponse:
 
 
 @app.get("/api/market/indicators")
-def get_indicators(timeframe: str = "1h") -> JSONResponse:
+def get_indicators(timeframe: str = "1h", _: bool = Depends(check_services_initialized)) -> JSONResponse:
     """
     Get technical indicators calculated from Redis-cached MEXC OHLCV data.
     Includes Williams %R, MACD, RSI, MA, and Volume analysis.
