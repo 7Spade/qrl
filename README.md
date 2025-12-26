@@ -125,6 +125,9 @@ qrl/
 | Document | Description |
 |----------|-------------|
 | [Quick Reference](docs/QUICK_REFERENCE.md) | Common tasks and commands |
+| [MEXC Documentation Index](docs/MEXC_DOCUMENTATION_INDEX.md) | Complete guide to MEXC API docs |
+| [MEXC API Guide](docs/MEXC_API_GUIDE.md) | Complete MEXC API integration guide |
+| [MEXC Optimization](docs/MEXC_OPTIMIZATION_RECOMMENDATIONS.md) | API optimization strategies and analysis |
 | [MEXC API Setup](docs/MEXC_API_SETUP.md) | API credentials guide |
 | [Authentication Guide](docs/AUTHENTICATION_GUIDE.md) | Cloud Run authentication |
 | [Development Guide](docs/DEVELOPMENT.md) | Code standards and setup |
