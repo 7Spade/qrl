@@ -1,111 +1,87 @@
 # QRL Trading Bot Documentation
 
-Complete documentation for the QRL Trading Bot project.
+This directory contains the essential documentation for the QRL trading bot project.
 
-## 📚 Documentation Index
+## Core Specifications
 
-### Getting Started
+**Primary reference documents** - Read these first:
 
-- **[快速開始.md](快速開始.md)** - 中文快速入門指南
-- **[QUICK_REFERENCE.md](QUICK_REFERENCE.md)** - Quick reference for common tasks
+1. **[交易機器人完整規範指南.md](交易機器人完整規範指南.md)** - Complete trading bot specification (Chinese)
+   - System architecture and design patterns
+   - Trading strategy framework
+   - Risk management system
+   - State management and data persistence
 
-### Setup Guides
+2. **[交易機器人頁面指南.md](交易機器人頁面指南.md)** - Dashboard and UI specification (Chinese)
+   - Web interface design
+   - Chart visualization requirements
+   - API endpoint specifications
+   - User interface components
 
-- **[MEXC_API_SETUP.md](MEXC_API_SETUP.md)** - Complete MEXC API setup guide
-  - How to create API keys
-  - API credentials configuration
-  - Subaccount setup
+## Implementation Documentation
 
-### Deployment
+**Production-ready guides** for deployment and usage:
 
-- **[AUTHENTICATION_GUIDE.md](AUTHENTICATION_GUIDE.md)** - Cloud Run authentication
-  - Public vs IAM authentication
-  - Troubleshooting 403 errors
-  - Security best practices
+3. **[ARCHITECTURE.md](ARCHITECTURE.md)** - System architecture overview
+   - Module structure and responsibilities
+   - Data flow and dependencies
+   - Design patterns used
 
-### Development
+4. **[PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md)** - Complete module reference
+   - Directory structure
+   - File descriptions
+   - Import relationships
 
-- **[DEVELOPMENT.md](DEVELOPMENT.md)** - Developer guide
-  - Code standards (PEP 8)
-  - Type hints and documentation
-  - Error handling best practices
-  - Testing guidelines
+5. **[QUICK_START.md](QUICK_START.md)** - Quick start guide
+   - Installation instructions
+   - Configuration setup
+   - Running the bot and dashboard
 
-### Technical Documentation
+## Feature-Specific Guides
 
-- **[PROJECT_ANALYSIS.md](PROJECT_ANALYSIS.md)** - Technical architecture
-  - Project structure
-  - Core components
-  - Design decisions
+6. **[REDIS_SETUP.md](REDIS_SETUP.md)** - Redis configuration
+   - Redis installation
+   - Environment variables
+   - Caching configuration
 
-- **[CHANGES_SUMMARY.md](CHANGES_SUMMARY.md)** - Recent optimizations
-  - PEP 8 compliance improvements
-  - Code quality metrics
-  - Backward compatibility notes
+7. **[REDIS_CACHING_GUIDE.md](REDIS_CACHING_GUIDE.md)** - MEXC API caching integration
+   - Cache-aside pattern implementation
+   - TTL configuration per data type
+   - Performance optimization
 
-- **[OPTIMIZATION_COMPARISON.md](OPTIMIZATION_COMPARISON.md)** - Before/after examples
-  - Code style improvements
-  - Error handling enhancements
-  - Documentation updates
+8. **[CHART_VISUALIZATION_GUIDE.md](CHART_VISUALIZATION_GUIDE.md)** - Chart.js integration
+   - Interactive chart setup
+   - Multi-timeframe selector
+   - Chart data API usage
 
-### Advanced Topics
+9. **[TECHNICAL_INDICATORS_GUIDE.md](TECHNICAL_INDICATORS_GUIDE.md)** - Technical indicators
+   - Williams %R, MA, MACD, RSI, Volume, EMA
+   - Calculation methodologies
+   - Usage in trading strategies
 
-- **[交易機器人完整規範指南.md](交易機器人完整規範指南.md)** - 完整技術規範（中文）
-  - 通用最佳實踐參考
-  - 系統架構設計
-  - 策略框架與風控體系
-  - 適合作為未來擴展參考
+## Quick Links
 
-- **[交易機器人頁面指南.md](交易機器人頁面指南.md)** - Web 介面設計指南（中文）
-  - QRL 專案專用介面規劃
-  - 當前實現功能說明
-  - 未來擴展功能參考
-  - 實現優先級建議
+- **Repository Root**: [../README.md](../README.md)
+- **CHANGELOG**: [../CHANGELOG.md](../CHANGELOG.md)
+- **Tests**: [../tests/](../tests/)
+- **Source Code**: [../src/](../src/)
 
-- **[SPECIFICATION_ANALYSIS.md](SPECIFICATION_ANALYSIS.md)** - Specification gap analysis
-  - Current vs ideal state comparison
-  - Priority-based recommendations
-  - Implementation roadmap
+## Documentation Structure
 
-## 🔍 Quick Links
+```
+docs/
+├── 交易機器人完整規範指南.md    # Core specification
+├── 交易機器人頁面指南.md        # UI specification
+├── ARCHITECTURE.md            # System architecture
+├── PROJECT_STRUCTURE.md       # Module reference
+├── QUICK_START.md            # Getting started
+├── REDIS_SETUP.md            # Redis config
+├── REDIS_CACHING_GUIDE.md    # Caching guide
+├── CHART_VISUALIZATION_GUIDE.md # Charts guide
+├── TECHNICAL_INDICATORS_GUIDE.md # Indicators
+└── README.md                 # This file
+```
 
-### For First-Time Users
+## Support
 
-1. Start with [QUICK_REFERENCE.md](QUICK_REFERENCE.md) or [快速開始.md](快速開始.md)
-2. Set up MEXC API using [MEXC_API_SETUP.md](MEXC_API_SETUP.md)
-3. Deploy following main [README.md](../README.md)
-
-### For Developers
-
-1. Read [DEVELOPMENT.md](DEVELOPMENT.md) for code standards
-2. Check [PROJECT_ANALYSIS.md](PROJECT_ANALYSIS.md) for architecture
-3. Review [OPTIMIZATION_COMPARISON.md](OPTIMIZATION_COMPARISON.md) for recent improvements
-
-### For Cloud Deployment
-
-1. Follow main [README.md](../README.md) for basic deployment
-2. Use [AUTHENTICATION_GUIDE.md](AUTHENTICATION_GUIDE.md) for authentication setup
-3. Reference [QUICK_REFERENCE.md](QUICK_REFERENCE.md) for troubleshooting
-
-## 📝 Document Maintenance
-
-All documentation follows these principles:
-
-- **Clear and concise** - No unnecessary details
-- **Up-to-date** - Reflects current codebase
-- **Practical examples** - Real-world use cases
-- **Bilingual support** - Chinese and English where applicable
-
-## 🤝 Contributing to Documentation
-
-When adding or updating documentation:
-
-1. Keep language clear and professional
-2. Include practical examples
-3. Update this index when adding new docs
-4. Follow existing formatting conventions
-5. Test all commands and code samples
-
----
-
-Return to [main README](../README.md)
+For issues, questions, or contributions, please refer to the main [README.md](../README.md) in the repository root.
