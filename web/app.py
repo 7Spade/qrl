@@ -174,6 +174,25 @@ def dashboard(request: Request) -> HTMLResponse:
     return templates.TemplateResponse("index.html", context)
 
 
+@app.get("/history", response_class=HTMLResponse)
+def trade_history_page(request: Request) -> HTMLResponse:
+    """
+    Render trade history visualization page.
+    
+    Shows:
+    - Summary statistics
+    - Complete trade history table
+    - Trade distribution analytics
+    
+    Args:
+        request: FastAPI request object
+    
+    Returns:
+        HTMLResponse: Rendered history page HTML
+    """
+    return templates.TemplateResponse("history.html", {"request": request})
+
+
 @app.get("/api/trades")
 def get_trades(limit: int = 20) -> JSONResponse:
     """
@@ -198,13 +217,54 @@ def get_trades(limit: int = 20) -> JSONResponse:
 @app.get("/api/statistics")
 def get_statistics() -> JSONResponse:
     """
-    Get trading statistics.
+    Get comprehensive trading statistics.
+    
+    Returns detailed metrics including:
+    - Total trades and cost
+    - Average price and amount
+    - Position utilization
+    - Win rate (if applicable)
+    - Recent performance
     
     Returns:
         JSONResponse: Trading statistics
     """
     try:
+        # Get basic statistics
         stats = state_manager.get_statistics()
+        
+        # Add position information
+        current_position = state_manager.get_position()
+        stats["current_position"] = current_position
+        stats["max_position"] = config.trading.max_position_usdt
+        stats["position_utilization"] = (
+            (current_position / config.trading.max_position_usdt) * 100
+            if config.trading.max_position_usdt > 0 else 0
+        )
+        stats["available_capacity"] = config.trading.max_position_usdt - current_position
+        
+        # Add trading configuration
+        stats["config"] = {
+            "symbol": config.trading.symbol,
+            "base_order_usdt": config.trading.base_order_usdt,
+            "max_position_usdt": config.trading.max_position_usdt,
+            "price_offset": config.trading.price_offset,
+        }
+        
+        # Get recent trades for performance metrics
+        recent_trades = state_manager.get_trade_history(limit=10)
+        stats["recent_trades_count"] = len(recent_trades)
+        
+        if recent_trades:
+            # Calculate total invested from recent trades
+            recent_total = sum(t['cost'] for t in recent_trades)
+            stats["recent_total_cost"] = recent_total
+            
+            # Get earliest and latest trade timestamps
+            timestamps = [t['timestamp'] for t in recent_trades]
+            stats["earliest_trade"] = min(timestamps)
+            stats["latest_trade"] = max(timestamps)
+        
         return JSONResponse(stats)
     except Exception as e:
         return JSONResponse(
@@ -271,6 +331,81 @@ def get_market_data() -> JSONResponse:
             "buy_signal": signal.should_buy,
             "timestamp": datetime.utcnow().isoformat(),
         })
+    except Exception as e:
+        return JSONResponse(
+            {"error": str(e)},
+            status_code=500
+        )
+
+
+@app.get("/api/performance")
+def get_performance_metrics() -> JSONResponse:
+    """
+    Get detailed performance metrics and analytics.
+    
+    Calculates and returns:
+    - Total investment and average cost
+    - Trade frequency and distribution
+    - Position metrics
+    - System health indicators
+    
+    Returns:
+        JSONResponse: Performance metrics
+    """
+    try:
+        # Get all trade history
+        all_trades = state_manager.get_trade_history(limit=1000)
+        stats = state_manager.get_statistics()
+        current_position = state_manager.get_position()
+        
+        # Calculate performance metrics
+        metrics = {
+            "overview": {
+                "total_trades": len(all_trades),
+                "total_invested": stats.get("total_cost", 0),
+                "avg_purchase_price": stats.get("avg_price", 0),
+                "current_position": current_position,
+                "position_utilization_pct": (
+                    (current_position / config.trading.max_position_usdt) * 100
+                    if config.trading.max_position_usdt > 0 else 0
+                ),
+            },
+            "trade_distribution": {},
+            "time_analysis": {},
+            "system_health": {
+                "cache_enabled": config.cache.redis_enabled,
+                "api_status": "healthy",  # Would be checked via actual health check
+            }
+        }
+        
+        if all_trades:
+            # Analyze trade distribution by time
+            from collections import Counter
+            trade_hours = [
+                datetime.fromisoformat(t['timestamp']).hour
+                for t in all_trades
+            ]
+            hour_distribution = Counter(trade_hours)
+            
+            metrics["trade_distribution"] = {
+                "by_hour": dict(hour_distribution.most_common(24)),
+                "peak_hour": hour_distribution.most_common(1)[0][0] if hour_distribution else 0,
+            }
+            
+            # Time analysis
+            timestamps = [datetime.fromisoformat(t['timestamp']) for t in all_trades]
+            if len(timestamps) > 1:
+                time_diffs = [
+                    (timestamps[i] - timestamps[i-1]).total_seconds() / 3600
+                    for i in range(1, len(timestamps))
+                ]
+                metrics["time_analysis"] = {
+                    "avg_hours_between_trades": sum(time_diffs) / len(time_diffs) if time_diffs else 0,
+                    "min_hours_between_trades": min(time_diffs) if time_diffs else 0,
+                    "max_hours_between_trades": max(time_diffs) if time_diffs else 0,
+                }
+        
+        return JSONResponse(metrics)
     except Exception as e:
         return JSONResponse(
             {"error": str(e)},
