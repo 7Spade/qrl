@@ -28,6 +28,7 @@
 - Enhanced visualization with candlestick charts and subplots
 - `/health` endpoint for Cloud Run health checks
 - Gunicorn production server configuration for Cloud Run deployment
+- **Performance dependencies**: orjson (fast JSON) and redis[hiredis] (fast C parser)
 
 ### Fixed
 - Cloud Run deployment: Added `/health` endpoint for container health checks
@@ -37,6 +38,7 @@
 - Balance display: Added debug logging for balance data troubleshooting
 - Error handling: Replaced bare `except:` clause with proper exception handling in cache stats callback
 - Error handling: Added logging for cache stats fetch errors to improve debugging
+- Position callback: Added exchange_client None check to prevent callback failures
 ### Improved
 - **Reduced cognitive load**: Smaller, focused files instead of one large file
 - **Better separation of concerns**: UI, logic, and data handling are distinct

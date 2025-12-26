@@ -88,7 +88,7 @@ def register_callbacks(app, config, state_manager, exchange_client,
     )
     def update_position_data(n):
         """Update position data display."""
-        if not state_manager or not config:
+        if not state_manager or not config or not exchange_client:
             return html.P("Service not initialized", className="text-danger")
         
         try:
