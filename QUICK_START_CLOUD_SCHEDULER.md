@@ -17,8 +17,8 @@ gcloud builds submit --config cloudbuild-job.yaml
 ### Step 2: 建立 Cloud Scheduler
 
 ```bash
-# 設定變數
-export PROJECT_ID="YOUR_PROJECT_ID"
+# 設定變數（請替換為您的實際專案 ID）
+export PROJECT_ID="YOUR_PROJECT_ID"  # 例如: my-trading-project-123
 export REGION="asia-east1"
 
 # 建立排程 1 (早上 6:00)
@@ -29,7 +29,25 @@ gcloud scheduler jobs create http qrl-trading-morning \
   --uri="https://$REGION-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/$PROJECT_ID/jobs/qrl-trading-job:run" \
   --http-method=POST \
   --oauth-service-account-email="$PROJECT_ID@appspot.gserviceaccount.com"
+```
 
+💡 **URI 說明**：使用 Cloud Run Jobs API 端點來觸發批次執行
+
+**具體範例**:
+```bash
+# 實際指令範例（記得替換 my-project-123 為您的專案 ID）
+gcloud scheduler jobs create http qrl-trading-morning \
+  --location=asia-east1 \
+  --schedule="0 6 * * *" \
+  --time-zone="Asia/Taipei" \
+  --uri="https://asia-east1-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/my-project-123/jobs/qrl-trading-job:run" \
+  --http-method=POST \
+  --oauth-service-account-email="my-project-123@appspot.gserviceaccount.com"
+```
+
+**可選：建立額外排程**
+
+```bash
 # 建立排程 2 (中午 12:00) - 可選
 gcloud scheduler jobs create http qrl-trading-noon \
   --location=$REGION \

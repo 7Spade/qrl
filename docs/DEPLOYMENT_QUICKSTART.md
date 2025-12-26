@@ -27,8 +27,8 @@ gcloud builds submit --config cloudbuild-job.yaml
 ### Step 2: 建立 Cloud Scheduler
 
 ```bash
-# 設定變數
-export PROJECT_ID="YOUR_PROJECT_ID"
+# 設定變數（請替換為您的實際專案 ID）
+export PROJECT_ID="YOUR_PROJECT_ID"  # 例如: my-trading-project
 export REGION="asia-east1"
 
 # 建立每日排程（上午 9:00）
@@ -40,6 +40,8 @@ gcloud scheduler jobs create http qrl-trading-daily \
   --http-method=POST \
   --oauth-service-account-email="$PROJECT_ID@appspot.gserviceaccount.com"
 ```
+
+💡 **提示**：URI 使用 Cloud Run Jobs API 端點格式。記得將 `$PROJECT_ID` 替換為您的實際 Google Cloud 專案 ID。
 
 ### Step 3: 測試執行
 

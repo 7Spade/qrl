@@ -54,9 +54,11 @@ gcloud run jobs describe qrl-trading-job --region asia-east1
 
 #### 方法 1: 使用 gcloud 命令（推薦）
 
+**重要說明**：Cloud Run Jobs 需要使用 Cloud Run Admin API 端點來觸發執行。
+
 ```bash
-# 設定變數
-export PROJECT_ID="your-project-id"
+# 設定變數（請替換為您的實際值）
+export PROJECT_ID="your-project-id"        # 例如: my-trading-bot-project
 export REGION="asia-east1"
 export JOB_NAME="qrl-trading-job"
 
@@ -72,6 +74,24 @@ gcloud scheduler jobs create http qrl-trading-daily \
 
 # 驗證建立成功
 gcloud scheduler jobs list --location=$REGION
+```
+
+**具體範例**（請替換為您的 PROJECT_ID）:
+```bash
+# 實際執行時的指令範例
+gcloud scheduler jobs create http qrl-trading-morning \
+  --location=asia-east1 \
+  --schedule="0 6 * * *" \
+  --time-zone="Asia/Taipei" \
+  --uri="https://asia-east1-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/my-project-123/jobs/qrl-trading-job:run" \
+  --http-method=POST \
+  --oauth-service-account-email="my-project-123@appspot.gserviceaccount.com"
+```
+
+💡 **提示**：URI 格式說明
+- Cloud Run **Jobs**: 使用 API 端點 `https://{region}-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/{project}/jobs/{job-name}:run`
+- Cloud Run **Services**: 使用直接 URL `https://{service-name}-{hash}.{region}.run.app`
+- 本專案使用 Cloud Run Jobs（成本更低，適合批次任務）
 ```
 
 #### 方法 2: 使用 Google Cloud Console
