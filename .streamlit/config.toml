@@ -1,0 +1,15 @@
+[theme]
+primaryColor = "#00ff41"
+backgroundColor = "#0a0e27"
+secondaryBackgroundColor = "#1a1f3a"
+textColor = "#00ff41"
+font = "monospace"
+
+[server]
+port = 8501
+address = "0.0.0.0"
+headless = true
+runOnSave = true
+
+[browser]
+gatherUsageStats = false

@@ -18,3 +18,7 @@ requests>=2.31.0
 
 # REQUIRED: Redis cache (mandatory for trading bot operation)
 redis>=5.0.0
+
+# Streamlit UI (new frontend)
+streamlit>=1.29.0
+plotly>=5.18.0

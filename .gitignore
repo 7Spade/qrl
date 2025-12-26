@@ -68,3 +68,9 @@ dist/
 # Backup files
 *.bak
 *.backup
+
+# Streamlit
+.streamlit/secrets.toml
+__pycache__/
+*.pyc
+.pytest_cache/
