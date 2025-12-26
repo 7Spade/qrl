@@ -9,11 +9,9 @@ Google Cloud Run supports two authentication modes:
 1. **Public Access** - Anyone with the URL can access the service (no authentication)
 2. **IAM Authentication** - Only authorized Google Cloud users can access (requires authentication)
 
-## Deployment Options
+## Deployment
 
-### Option 1: Public Access (Default)
-
-Deploy with public access - suitable for development and testing:
+### Deploy with Public Access (Default)
 
 ```bash
 gcloud builds submit --config cloudbuild.yaml
@@ -25,12 +23,26 @@ gcloud builds submit --config cloudbuild.yaml
 - ⚠️ No access control - anyone can view your dashboard
 - ⚠️ Less secure - consider IAM auth for production
 
-### Option 2: IAM Authentication (Recommended for Production)
+The deployment automatically grants public access by:
+1. Deploying with `--allow-unauthenticated` flag
+2. Adding an explicit IAM policy binding for `allUsers`
 
-Deploy with IAM authentication - suitable for production:
+### Switch to IAM Authentication (For Production)
+
+After deploying, you can switch to IAM authentication:
 
 ```bash
-gcloud builds submit --config cloudbuild.yaml --substitutions _USE_IAM_AUTH=true
+# Remove public access
+gcloud run services remove-iam-policy-binding qrl-bot \
+  --region=asia-east1 \
+  --member="allUsers" \
+  --role="roles/run.invoker"
+
+# Grant yourself access
+gcloud run services add-iam-policy-binding qrl-bot \
+  --region=asia-east1 \
+  --member="user:your-email@gmail.com" \
+  --role="roles/run.invoker"
 ```
 
 **Characteristics:**
@@ -101,21 +113,21 @@ gcloud run services remove-iam-policy-binding qrl-bot \
   --member="allUsers" \
   --role="roles/run.invoker"
 
-# Method 2: Redeploy with IAM auth
-gcloud builds submit --config cloudbuild.yaml --substitutions _USE_IAM_AUTH=true
+# Then grant access to specific users
+gcloud run services add-iam-policy-binding qrl-bot \
+  --region=asia-east1 \
+  --member="user:your-email@gmail.com" \
+  --role="roles/run.invoker"
 ```
 
 ### From IAM Authentication to Public
 
 ```bash
-# Method 1: Grant public access
+# Grant public access
 gcloud run services add-iam-policy-binding qrl-bot \
   --region=asia-east1 \
   --member="allUsers" \
   --role="roles/run.invoker"
-
-# Method 2: Redeploy with public access
-gcloud builds submit --config cloudbuild.yaml --substitutions _USE_IAM_AUTH=false
 ```
 
 ## Troubleshooting
@@ -252,7 +264,7 @@ Create a Cloud Monitoring alert for unauthorized access attempts:
 
 | Feature | Public Access | IAM Authentication |
 |---------|--------------|-------------------|
-| **Deployment** | Default | `_USE_IAM_AUTH=true` |
+| **Deployment** | Default (automatic) | Switch after deployment |
 | **Access** | Anyone with URL | Authorized users only |
 | **Security** | Low | High |
 | **Ease of Use** | Easy | Requires auth setup |

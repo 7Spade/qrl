@@ -65,23 +65,32 @@ uvicorn web.app:app --reload
 
 ### Google Cloud Run Deployment
 
-#### Option 1: Public Access (No Authentication)
-
 ```bash
-# Deploy with public access (default)
+# Deploy with Cloud Build (public access by default)
 gcloud builds submit --config cloudbuild.yaml
 ```
 
-This deploys the dashboard with public access - anyone with the URL can view it.
+The deployment automatically configures public access. The IAM policy binding is included in the Cloud Build configuration.
 
-#### Option 2: IAM Authentication (Recommended for Production)
+**Note**: After deployment, it may take 30-60 seconds for the service to be fully accessible.
+
+#### Optional: Switch to IAM Authentication
+
+If you want to restrict access to authorized users only:
 
 ```bash
-# Deploy with IAM authentication
-gcloud builds submit --config cloudbuild.yaml --substitutions _USE_IAM_AUTH=true
-```
+# Remove public access
+gcloud run services remove-iam-policy-binding qrl-bot \
+  --region=asia-east1 \
+  --member="allUsers" \
+  --role="roles/run.invoker"
 
-This deploys the dashboard with IAM authentication - only authorized Google Cloud users can access it.
+# Grant access to specific users
+gcloud run services add-iam-policy-binding qrl-bot \
+  --region=asia-east1 \
+  --member="user:your-email@gmail.com" \
+  --role="roles/run.invoker"
+```
 
 **To access an IAM-authenticated service:**
 
@@ -90,29 +99,9 @@ This deploys the dashboard with IAM authentication - only authorized Google Clou
 TOKEN=$(gcloud auth print-identity-token)
 curl -H "Authorization: Bearer $TOKEN" https://qrl-bot-545492969490.asia-east1.run.app/
 
-# Method 2: Grant yourself the invoker role
-gcloud run services add-iam-policy-binding qrl-bot \
-  --region=asia-east1 \
-  --member="user:your-email@gmail.com" \
-  --role="roles/run.invoker"
-
-# Then access via browser (will prompt for Google authentication)
+# Method 2: Access via browser (will prompt for Google authentication)
+# Just open the URL after granting yourself access
 ```
-
-**To switch from public to IAM-authenticated (or vice versa):**
-
-```bash
-# Remove public access and enable IAM auth
-gcloud run services remove-iam-policy-binding qrl-bot \
-  --region=asia-east1 \
-  --member="allUsers" \
-  --role="roles/run.invoker"
-
-# Or: Redeploy with different authentication setting
-gcloud builds submit --config cloudbuild.yaml --substitutions _USE_IAM_AUTH=true
-```
-
-**Note**: After deployment, it may take 30-60 seconds for the service to be fully accessible.
 
 ## 📊 Trading Strategy
 
