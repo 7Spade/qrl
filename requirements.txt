@@ -16,5 +16,5 @@ jinja2>=3.1.2
 # Health check
 requests>=2.31.0
 
-# Optional: Redis cache (for performance optimization)
+# REQUIRED: Redis cache (mandatory for trading bot operation)
 redis>=5.0.0
