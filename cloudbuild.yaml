@@ -17,7 +17,7 @@ steps:
     args:
       - 'run'
       - 'deploy'
-      - 'qrl-bot'  # Cloud Run 服務名稱
+      - 'qrl-bot'
       - '--image'
       - 'gcr.io/$PROJECT_ID/qrl-bot:${_IMAGE_TAG}'
       - '--region'
@@ -25,6 +25,8 @@ steps:
       - '--platform'
       - 'managed'
       - '--allow-unauthenticated'
+      - '--port'
+      - '8080'
       - '--set-env-vars'
       - 'SYMBOL=QRL/USDT'
 

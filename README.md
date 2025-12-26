@@ -51,11 +51,15 @@ uvicorn web.app:app --reload
 ```bash
 # Deploy with Cloud Build
 gcloud builds submit --config cloudbuild.yaml
+```
 
-# Or build and push manually
-docker build -t gcr.io/PROJECT_ID/qrl-bot .
-docker push gcr.io/PROJECT_ID/qrl-bot
-gcloud run deploy qrl-bot --image gcr.io/PROJECT_ID/qrl-bot
+**If you get 403 Forbidden error**, run this to allow public access:
+
+```bash
+gcloud run services add-iam-policy-binding qrl-bot \
+  --region=asia-east1 \
+  --member="allUsers" \
+  --role="roles/run.invoker"
 ```
 
 ## 📊 Trading Strategy
@@ -127,11 +131,37 @@ gcloud scheduler jobs create http qrl-trader \
 
 ## 🐛 Troubleshooting
 
+### Local Issues
+
 **Module errors**: `pip install -r requirements.txt`
 
 **Database errors**: `rm -rf data/ && python main.py`
 
 **API errors**: Verify credentials in `.env`
+
+### Cloud Run Issues
+
+**403 Forbidden Error**:
+```bash
+# Allow unauthenticated access
+gcloud run services add-iam-policy-binding qrl-bot \
+  --region=asia-east1 \
+  --member="allUsers" \
+  --role="roles/run.invoker"
+```
+
+**Port/Connection Issues**:
+- Cloud Run uses PORT environment variable (configured in Dockerfile)
+- Ensure `--port 8080` is set in cloudbuild.yaml
+
+**Deployment Fails**:
+```bash
+# Check logs
+gcloud run services logs read qrl-bot --region=asia-east1
+
+# Redeploy
+gcloud builds submit --config cloudbuild.yaml
+```
 
 ## 📝 License
 
