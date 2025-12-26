@@ -1,12 +1,15 @@
 # Google Cloud Build configuration for QRL Trading Bot
+substitutions:
+  _IMAGE_TAG: "latest"  # 可改成其他版本號，例如 v1.0.0
+
 steps:
   # Build the container image
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['build', '-t', 'gcr.io/$PROJECT_ID/qrl-bot:$COMMIT_SHA', '.']
+    args: ['build', '-t', 'gcr.io/$PROJECT_ID/qrl-bot:${_IMAGE_TAG}', '.']
   
   # Push the container image to Container Registry
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['push', 'gcr.io/$PROJECT_ID/qrl-bot:$COMMIT_SHA']
+    args: ['push', 'gcr.io/$PROJECT_ID/qrl-bot:${_IMAGE_TAG}']
   
   # Deploy to Cloud Run
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
@@ -14,9 +17,9 @@ steps:
     args:
       - 'run'
       - 'deploy'
-      - 'qrl-bot'
+      - 'qrl-bot'  # Cloud Run 服務名稱
       - '--image'
-      - 'gcr.io/$PROJECT_ID/qrl-bot:$COMMIT_SHA'
+      - 'gcr.io/$PROJECT_ID/qrl-bot:${_IMAGE_TAG}'
       - '--region'
       - 'asia-east1'
       - '--platform'
@@ -26,8 +29,8 @@ steps:
       - 'SYMBOL=QRL/USDT'
 
 images:
-  - 'gcr.io/$PROJECT_ID/qrl-bot:$COMMIT_SHA'
+  - 'gcr.io/$PROJECT_ID/qrl-bot:${_IMAGE_TAG}'
 
 options:
-  machineType: 'N1_HIGHCPU_8'
+  machineType: 'E2_SMALL'
   logging: CLOUD_LOGGING_ONLY
