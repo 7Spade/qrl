@@ -73,24 +73,41 @@ def dashboard(request: Request) -> HTMLResponse:
         "request": request,
         "symbol": config.trading.symbol,
         "price": "N/A",
+        "price_raw": 0.0,
         "change_24h": "N/A",
+        "change_24h_raw": 0.0,
         "ema20": "N/A",
+        "ema20_raw": 0.0,
         "ema60": "N/A",
+        "ema60_raw": 0.0,
         "position": 0.0,
         "max_position": config.trading.max_position_usdt,
         "utilization": 0.0,
         "available": config.trading.max_position_usdt,
         "strategy_status": "Unknown",
+        "strategy_detail": "",
+        "buy_condition": "",
         "api_status": "Disconnected",
+        "data_delay": "N/A",
+        "last_trade": "No trades yet",
         "last_update": datetime.utcnow().isoformat(),
+        "config": config,  # Pass config to template
     }
     
     # Fetch market data
+    start_time = datetime.utcnow()
     try:
         ticker = exchange_client.fetch_ticker(config.trading.symbol)
         context["price"] = f"${ticker['last']:.6f}"
+        context["price_raw"] = ticker['last']
         context["change_24h"] = f"{ticker.get('percentage', 0):.2f}%"
+        context["change_24h_raw"] = ticker.get('percentage', 0)
         context["api_status"] = "Connected"
+        
+        # Calculate data delay
+        end_time = datetime.utcnow()
+        delay_ms = (end_time - start_time).total_seconds() * 1000
+        context["data_delay"] = f"{delay_ms:.0f}ms"
         
         # Fetch OHLCV for EMA calculation
         ohlcv = exchange_client.fetch_ohlcv(
@@ -102,12 +119,33 @@ def dashboard(request: Request) -> HTMLResponse:
         # Analyze with strategy
         signal = strategy.analyze(ohlcv)
         context["ema20"] = f"${signal.metadata.get('ema_short', 0):.6f}"
+        context["ema20_raw"] = signal.metadata.get('ema_short', 0)
         context["ema60"] = f"${signal.metadata.get('ema_long', 0):.6f}"
+        context["ema60_raw"] = signal.metadata.get('ema_long', 0)
+        
+        # Strategy status with details
+        ema60_threshold = context["ema60_raw"] * 1.02
+        context["buy_condition"] = f"Price ≤ ${ema60_threshold:.6f} (EMA60 × 1.02)"
         
         if signal.should_buy:
             context["strategy_status"] = "🟢 Buy Signal"
+            context["strategy_detail"] = "Conditions met - Ready to buy"
         else:
-            context["strategy_status"] = "⚠️ No Signal"
+            near_support = signal.metadata.get('near_support', False)
+            positive_momentum = signal.metadata.get('positive_momentum', False)
+            
+            if not near_support and not positive_momentum:
+                context["strategy_status"] = "⚠️ No Signal"
+                context["strategy_detail"] = "Price too high & Momentum weak"
+            elif not near_support:
+                context["strategy_status"] = "⚠️ Waiting"
+                context["strategy_detail"] = "Price above threshold"
+            elif not positive_momentum:
+                context["strategy_status"] = "⚠️ Waiting"
+                context["strategy_detail"] = "Weak momentum (EMA20 < EMA60)"
+            else:
+                context["strategy_status"] = "⚠️ Hold"
+                context["strategy_detail"] = "Monitoring conditions"
     
     except ccxt.NetworkError:
         context["api_status"] = "Network Error"
@@ -122,6 +160,14 @@ def dashboard(request: Request) -> HTMLResponse:
             (position / config.trading.max_position_usdt) * 100
         )
         context["available"] = config.trading.max_position_usdt - position
+        
+        # Get last trade info
+        trades = state_manager.get_trade_history(limit=1)
+        if trades:
+            last_trade = trades[0]
+            trade_time = datetime.fromisoformat(last_trade['timestamp'])
+            context["last_trade"] = f"{trade_time.strftime('%Y-%m-%d %H:%M UTC')}"
+        
     except Exception:
         pass
     

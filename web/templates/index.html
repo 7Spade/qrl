@@ -140,7 +140,7 @@
         </div>
         <div class="data-row">
           <span class="label">24H Change:</span>
-          <span class="value">{{ change_24h }}</span>
+          <span class="value" style="color: {% if change_24h_raw > 0 %}#00ff41{% elif change_24h_raw < 0 %}#ff4444{% else %}#00d4ff{% endif %}">{{ change_24h }}</span>
         </div>
         <div class="data-row">
           <span class="label">EMA20:</span>
@@ -190,12 +190,24 @@
           <span class="value">{{ strategy_status }}</span>
         </div>
         <div class="data-row">
+          <span class="label">Details:</span>
+          <span class="value" style="font-size: 0.9em;">{{ strategy_detail }}</span>
+        </div>
+        <div class="data-row">
+          <span class="label">Buy Condition:</span>
+          <span class="value" style="font-size: 0.85em;">{{ buy_condition }}</span>
+        </div>
+        <div class="data-row">
           <span class="label">Order Size:</span>
           <span class="value">$50 USDT</span>
         </div>
         <div class="data-row">
           <span class="label">Price Offset:</span>
           <span class="value">-2%</span>
+        </div>
+        <div class="data-row">
+          <span class="label">Last Trade:</span>
+          <span class="value" style="font-size: 0.9em;">{{ last_trade }}</span>
         </div>
       </div>
       
@@ -205,8 +217,16 @@
         <div class="data-row">
           <span class="label">API Connection:</span>
           <span class="value {% if 'Connected' in api_status %}status-connected{% else %}status-disconnected{% endif %}">
-            {{ api_status }}
+            {% if 'Connected' in api_status %}● {{ api_status }}{% else %}⚠ {{ api_status }}{% endif %}
           </span>
+        </div>
+        <div class="data-row">
+          <span class="label">Data Delay:</span>
+          <span class="value">{{ data_delay }}</span>
+        </div>
+        <div class="data-row">
+          <span class="label">Cache:</span>
+          <span class="value">{% if config.cache.redis_enabled %}Redis Enabled{% else %}Disabled{% endif %}</span>
         </div>
         <div class="data-row">
           <span class="label">Last Update:</span>
