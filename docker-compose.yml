@@ -1,0 +1,43 @@
+# Docker Compose for local development and testing
+version: '3.8'
+
+services:
+  qrl-bot-web:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      - MEXC_API_KEY=${MEXC_API_KEY}
+      - MEXC_API_SECRET=${MEXC_API_SECRET}
+      - SYMBOL=${SYMBOL:-QRL/USDT}
+    volumes:
+      - ./data:/app/data
+    env_file:
+      - .env
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+
+  qrl-bot-trader:
+    build: .
+    command: python main.py
+    environment:
+      - MEXC_API_KEY=${MEXC_API_KEY}
+      - MEXC_API_SECRET=${MEXC_API_SECRET}
+      - SYMBOL=${SYMBOL:-QRL/USDT}
+    volumes:
+      - ./data:/app/data
+    env_file:
+      - .env
+    depends_on:
+      - qrl-bot-web
+    restart: "no"
+    profiles:
+      - trading
+
+volumes:
+  data:

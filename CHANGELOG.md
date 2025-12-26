@@ -8,8 +8,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Docker Support**: Dockerfile for containerization
+- **Google Cloud Run**: Complete deployment configuration
+  - cloudbuild.yaml for automated builds
+  - docker-compose.yml for local testing
+  - .dockerignore for optimized builds
+- **Deployment Documentation**:
+  - DEPLOYMENT.md (English) - Complete Cloud Run guide
+  - 部署指南.md (Chinese) - 完整部署說明
+  - deploy.sh - Automated deployment script
+- **Web Dashboard Improvements**:
+  - Health check endpoint (/health) for Cloud Run
+  - Error handling for API failures
+- **Dependencies**: Added FastAPI, uvicorn, gunicorn, requests
 - Comprehensive project analysis document (PROJECT_ANALYSIS.md)
-- Complete README with setup instructions and documentation
+- Complete README with setup instructions
 - Comprehensive docstrings for all modules and functions
 - CHANGELOG file for tracking project changes
 - Automatic data directory creation in state.py
@@ -22,9 +35,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Enhanced all Python files with detailed module and function documentation
 - Improved code organization and readability
+- Updated requirements.txt with production dependencies
 
 ### Security
-- No changes
+- .dockerignore prevents sensitive files in containers
+- Cloud Run configuration supports Secret Manager integration
 
 ## [0.1.0] - Initial Release
 
