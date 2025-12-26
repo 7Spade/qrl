@@ -55,10 +55,13 @@ def register_callbacks(app, config, state_manager, exchange_client,
         try:
             ticker = exchange_client.fetch_ticker(config.trading.symbol)
             ohlcv = exchange_client.fetch_ohlcv(
-                config.trading.symbol, '1h', limit=60
+                config.trading.symbol, 
+                config.trading.timeframe,  # Use config timeframe instead of hardcoded '1h'
+                limit=120
             )
             
             if not ohlcv or len(ohlcv) == 0:
+                logger.warning(f"OHLCV data empty for {config.trading.symbol} timeframe={config.trading.timeframe}")
                 return html.P(
                     "⚠️ Waiting for market data...",
                     className="text-warning"
@@ -70,6 +73,8 @@ def register_callbacks(app, config, state_manager, exchange_client,
             )
             ema20 = df['close'].ewm(span=20, adjust=False).mean().iloc[-1]
             ema60 = df['close'].ewm(span=60, adjust=False).mean().iloc[-1]
+            
+            logger.info(f"Market data loaded: {len(ohlcv)} candles, price={ticker.get('last', 0)}")
             
             return create_market_data_card(
                 symbol=config.trading.symbol,
@@ -137,10 +142,13 @@ def register_callbacks(app, config, state_manager, exchange_client,
         try:
             ticker = exchange_client.fetch_ticker(config.trading.symbol)
             ohlcv = exchange_client.fetch_ohlcv(
-                config.trading.symbol, '1h', limit=60
+                config.trading.symbol, 
+                config.trading.timeframe,  # Use config timeframe instead of hardcoded '1h'
+                limit=120
             )
             
             if not ohlcv or len(ohlcv) == 0:
+                logger.warning(f"OHLCV data empty for strategy, symbol={config.trading.symbol} timeframe={config.trading.timeframe}")
                 return html.P(
                     "⚠️ Waiting for market data...",
                     className="text-warning"
@@ -159,6 +167,8 @@ def register_callbacks(app, config, state_manager, exchange_client,
             
             stats = state_manager.get_statistics()
             last_trade = stats.get('last_trade_time', 'None')
+            
+            logger.info(f"Strategy data loaded: signal={buy_signal}, price={price}, ema20={ema20}, ema60={ema60}")
             
             return create_strategy_card(
                 buy_signal=buy_signal,

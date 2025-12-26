@@ -39,6 +39,9 @@
 - Error handling: Replaced bare `except:` clause with proper exception handling in cache stats callback
 - Error handling: Added logging for cache stats fetch errors to improve debugging
 - Position callback: Added exchange_client None check to prevent callback failures
+- **Market data fetch: Fixed timeframe mismatch - now uses config.trading.timeframe instead of hardcoded '1h'**
+- **Strategy data fetch: Fixed timeframe mismatch - now uses config.trading.timeframe instead of hardcoded '1h'**
+- **Added logging for OHLCV fetch success/failure to help diagnose empty data issues**
 ### Improved
 - **Reduced cognitive load**: Smaller, focused files instead of one large file
 - **Better separation of concerns**: UI, logic, and data handling are distinct
