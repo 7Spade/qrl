@@ -7,6 +7,7 @@ import logging
 
 from web.components.cards import (
     create_status_banner,
+    create_featured_price_card,
     create_market_data_card,
     create_position_card,
     create_strategy_card,
@@ -42,6 +43,30 @@ def register_callbacks(app, config, state_manager, exchange_client,
     def update_status_banner(n):
         """Update status banner."""
         return create_status_banner(initialization_error)
+    
+    @app.callback(
+        Output('featured-price-card', 'children'),
+        Input('interval-component', 'n_intervals')
+    )
+    def update_featured_price(n):
+        """Update featured price display."""
+        if not exchange_client or not config:
+            return html.P("Service not initialized", className="text-danger")
+        
+        try:
+            ticker = exchange_client.fetch_ticker(config.trading.symbol)
+            
+            return create_featured_price_card(
+                symbol=config.trading.symbol,
+                price=ticker.get('last', 0),
+                change_24h=ticker.get('percentage', 0),
+                high_24h=ticker.get('high', 0),
+                low_24h=ticker.get('low', 0),
+                volume_24h=ticker.get('quoteVolume', 0)
+            )
+        except Exception as e:
+            logger.error(f"Error fetching featured price: {e}")
+            return html.P(f"Error: {str(e)}", className="text-danger")
     
     @app.callback(
         Output('market-data', 'children'),

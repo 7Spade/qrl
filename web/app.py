@@ -26,10 +26,13 @@ from web.callbacks import data_callbacks, chart_callbacks
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Initialize Dash app with Bootstrap theme
+# Initialize Dash app with Bootstrap theme and Font Awesome
 app = dash.Dash(
     __name__,
-    external_stylesheets=[dbc.themes.CYBORG],
+    external_stylesheets=[
+        dbc.themes.CYBORG,
+        "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    ],
     title="QRL Trading Bot Dashboard"
 )
 
