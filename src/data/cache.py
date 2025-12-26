@@ -3,6 +3,7 @@ Redis cache module for trading bot.
 
 Provides caching functionality using Redis for improved performance.
 Supports optional Redis integration - falls back gracefully if unavailable.
+Includes automatic reconnection on connection loss.
 """
 from typing import Optional, Any
 import json
@@ -11,7 +12,7 @@ from src.core.config import CacheConfig
 
 
 class CacheClient:
-    """Redis cache client with fallback support."""
+    """Redis cache client with fallback support and automatic reconnection."""
     
     def __init__(self, config: CacheConfig):
         """
@@ -23,6 +24,7 @@ class CacheClient:
         self.config = config
         self._redis = None
         self._enabled = False
+        self._connection_available = False
         
         if config.redis_enabled and config.redis_url:
             self._init_redis()
@@ -38,22 +40,54 @@ class CacheClient:
             # Test connection
             self._redis.ping()
             self._enabled = True
+            self._connection_available = True
             print(f"✅ Redis connected: {self.config.redis_url.split('@')[-1]}")
         except ImportError:
             print("⚠️ Redis library not installed. Run: pip install redis")
             self._enabled = False
+            self._connection_available = False
         except Exception as e:
             print(f"⚠️ Redis connection failed: {e}")
             self._enabled = False
+            self._connection_available = False
+    
+    def _ensure_connection(self) -> bool:
+        """
+        Ensure Redis connection is available, attempt reconnection if needed.
+        
+        Returns:
+            True if connected, False otherwise
+        """
+        if not self._enabled:
+            return False
+        
+        if not self._connection_available or not self._redis:
+            # Attempt reconnection
+            try:
+                self._init_redis()
+            except Exception as e:
+                print(f"⚠️ Redis reconnection failed: {e}")
+                self._connection_available = False
+                return False
+        
+        # Verify connection with ping
+        try:
+            self._redis.ping()
+            self._connection_available = True
+            return True
+        except Exception as e:
+            print(f"⚠️ Redis connection lost: {e}")
+            self._connection_available = False
+            return False
     
     @property
     def enabled(self) -> bool:
         """Check if cache is enabled and connected."""
-        return self._enabled
+        return self._enabled and self._ensure_connection()
     
     def get(self, key: str) -> Optional[Any]:
         """
-        Get value from cache.
+        Get value from cache with automatic reconnection.
         
         Args:
             key: Cache key
@@ -61,7 +95,7 @@ class CacheClient:
         Returns:
             Cached value or None if not found/disabled
         """
-        if not self._enabled:
+        if not self._ensure_connection():
             return None
         
         try:
@@ -70,6 +104,7 @@ class CacheClient:
                 return json.loads(value)
         except Exception as e:
             print(f"⚠️ Cache get error: {e}")
+            self._connection_available = False
         
         return None
     
@@ -80,7 +115,7 @@ class CacheClient:
         ttl: Optional[int] = None
     ) -> bool:
         """
-        Set value in cache.
+        Set value in cache with automatic reconnection.
         
         Args:
             key: Cache key
@@ -90,7 +125,7 @@ class CacheClient:
         Returns:
             True if successful, False otherwise
         """
-        if not self._enabled:
+        if not self._ensure_connection():
             return False
         
         try:
@@ -103,11 +138,12 @@ class CacheClient:
             return True
         except Exception as e:
             print(f"⚠️ Cache set error: {e}")
+            self._connection_available = False
             return False
     
     def delete(self, key: str) -> bool:
         """
-        Delete key from cache.
+        Delete key from cache with automatic reconnection.
         
         Args:
             key: Cache key
@@ -115,7 +151,7 @@ class CacheClient:
         Returns:
             True if successful, False otherwise
         """
-        if not self._enabled:
+        if not self._ensure_connection():
             return False
         
         try:
@@ -123,18 +159,19 @@ class CacheClient:
             return True
         except Exception as e:
             print(f"⚠️ Cache delete error: {e}")
+            self._connection_available = False
             return False
     
     def clear_all(self) -> bool:
         """
-        Clear all cache entries.
+        Clear all cache entries with automatic reconnection.
         
         WARNING: This clears the entire Redis database.
         
         Returns:
             True if successful, False otherwise
         """
-        if not self._enabled:
+        if not self._ensure_connection():
             return False
         
         try:
@@ -142,11 +179,12 @@ class CacheClient:
             return True
         except Exception as e:
             print(f"⚠️ Cache clear error: {e}")
+            self._connection_available = False
             return False
     
     def get_stats(self) -> dict:
         """
-        Get cache statistics.
+        Get cache statistics with automatic reconnection.
         
         Returns:
             Dictionary with cache stats
@@ -155,6 +193,12 @@ class CacheClient:
             return {
                 "enabled": False,
                 "status": "disabled"
+            }
+        
+        if not self._ensure_connection():
+            return {
+                "enabled": True,
+                "status": "disconnected"
             }
         
         try:
@@ -167,6 +211,7 @@ class CacheClient:
                 "uptime_seconds": info.get("uptime_in_seconds", 0),
             }
         except Exception as e:
+            self._connection_available = False
             return {
                 "enabled": True,
                 "status": f"error: {e}"

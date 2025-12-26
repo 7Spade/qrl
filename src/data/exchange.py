@@ -2,17 +2,52 @@
 Exchange integration module for MEXC cryptocurrency exchange.
 
 Provides abstraction layer for exchange API interactions with
-error handling, rate limiting, and Redis caching.
+error handling, rate limiting, automatic retry, and Redis caching.
 """
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Callable
 import ccxt
 import hashlib
+import time
+from functools import wraps
 from src.core.config import ExchangeConfig, CacheConfig
 from src.data.cache import CacheClient
 
 
+def retry_on_network_error(max_attempts: int = 3, delay: float = 1.0):
+    """
+    Decorator for retrying operations on network errors.
+    
+    Args:
+        max_attempts: Maximum number of retry attempts
+        delay: Initial delay between retries in seconds (exponential backoff)
+    """
+    def decorator(func: Callable) -> Callable:
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            last_exception = None
+            for attempt in range(max_attempts):
+                try:
+                    return func(*args, **kwargs)
+                except ccxt.NetworkError as e:
+                    last_exception = e
+                    if attempt < max_attempts - 1:
+                        wait_time = delay * (2 ** attempt)
+                        print(f"⚠️ Network error (attempt {attempt + 1}/{max_attempts}): {e}. Retrying in {wait_time}s...")
+                        time.sleep(wait_time)
+                    else:
+                        print(f"❌ Network error after {max_attempts} attempts: {e}")
+                except ccxt.ExchangeError as e:
+                    # Don't retry on exchange errors (invalid params, insufficient funds, etc.)
+                    raise e
+            
+            # If we get here, all attempts failed
+            raise last_exception
+        return wrapper
+    return decorator
+
+
 class ExchangeClient:
-    """MEXC exchange client wrapper with Redis caching support."""
+    """MEXC exchange client wrapper with Redis caching and retry support."""
     
     def __init__(self, config: ExchangeConfig, cache_config: Optional[CacheConfig] = None):
         """
@@ -63,9 +98,10 @@ class ExchangeClient:
         key_data = f"{method}:{':'.join(str(arg) for arg in args)}"
         return f"mexc:{hashlib.md5(key_data.encode()).hexdigest()[:16]}"
     
+    @retry_on_network_error(max_attempts=3, delay=1.0)
     def fetch_ticker(self, symbol: str, use_cache: bool = True) -> Dict[str, Any]:
         """
-        Fetch current ticker data for symbol with Redis caching.
+        Fetch current ticker data for symbol with Redis caching and auto-retry.
         
         Args:
             symbol: Trading pair symbol
@@ -75,7 +111,7 @@ class ExchangeClient:
             Ticker data dictionary
             
         Raises:
-            ccxt.NetworkError: Network connection failed
+            ccxt.NetworkError: Network connection failed after retries
             ccxt.ExchangeError: Exchange API error
         """
         cache_key = self._get_cache_key("ticker", symbol)
@@ -95,6 +131,7 @@ class ExchangeClient:
         
         return data
     
+    @retry_on_network_error(max_attempts=3, delay=1.0)
     def fetch_ohlcv(
         self,
         symbol: str,
@@ -103,7 +140,7 @@ class ExchangeClient:
         use_cache: bool = True
     ) -> List[List[Any]]:
         """
-        Fetch OHLCV candlestick data with Redis caching.
+        Fetch OHLCV candlestick data with Redis caching and auto-retry.
         
         Args:
             symbol: Trading pair symbol
@@ -115,7 +152,7 @@ class ExchangeClient:
             List of OHLCV candles
             
         Raises:
-            ccxt.NetworkError: Network connection failed
+            ccxt.NetworkError: Network connection failed after retries
             ccxt.ExchangeError: Exchange API error
         """
         cache_key = self._get_cache_key("ohlcv", symbol, timeframe, limit)
@@ -158,19 +195,21 @@ class ExchangeClient:
         """
         return self.exchange.create_limit_buy_order(symbol, amount, price)
     
+    @retry_on_network_error(max_attempts=3, delay=1.0)
     def fetch_balance(self) -> Dict[str, Any]:
         """
-        Fetch account balance.
+        Fetch account balance with auto-retry.
         
         Returns:
             Balance information
             
         Raises:
-            ccxt.NetworkError: Network connection failed
+            ccxt.NetworkError: Network connection failed after retries
             ccxt.ExchangeError: Exchange API error
         """
         return self.exchange.fetch_balance()
     
+    @retry_on_network_error(max_attempts=3, delay=1.0)
     def fetch_deals(
         self,
         symbol: str,
@@ -178,7 +217,7 @@ class ExchangeClient:
         use_cache: bool = True
     ) -> List[Dict[str, Any]]:
         """
-        Fetch latest deals/trades for symbol with Redis caching.
+        Fetch latest deals/trades for symbol with Redis caching and auto-retry.
         
         Used for tick/trade price and volume analysis, VWAP calculation.
         
@@ -191,7 +230,7 @@ class ExchangeClient:
             List of trade records
             
         Raises:
-            ccxt.NetworkError: Network connection failed
+            ccxt.NetworkError: Network connection failed after retries
             ccxt.ExchangeError: Exchange API error
         """
         cache_key = self._get_cache_key("deals", symbol, limit)
@@ -211,6 +250,7 @@ class ExchangeClient:
         
         return data
     
+    @retry_on_network_error(max_attempts=3, delay=1.0)
     def fetch_order_book(
         self,
         symbol: str,
@@ -218,7 +258,7 @@ class ExchangeClient:
         use_cache: bool = True
     ) -> Dict[str, Any]:
         """
-        Fetch market depth (order book) with Redis caching.
+        Fetch market depth (order book) with Redis caching and auto-retry.
         
         Used for liquidity estimation, support/resistance, VWAP order models.
         
@@ -231,7 +271,7 @@ class ExchangeClient:
             Order book data with bids and asks
             
         Raises:
-            ccxt.NetworkError: Network connection failed
+            ccxt.NetworkError: Network connection failed after retries
             ccxt.ExchangeError: Exchange API error
         """
         cache_key = self._get_cache_key("orderbook", symbol, limit)
