@@ -1,0 +1,66 @@
+# scheduler-config.yaml
+# Cloud Scheduler configuration for QRL Trading Bot
+#
+# Purpose: Define scheduled job triggers for Cloud Run Jobs
+# 
+# Cloud Scheduler Free Tier:
+# - First 3 jobs per month are FREE
+# - Additional jobs: $0.10 per job per month
+#
+# Usage:
+#   See docs/CLOUD_SCHEDULER_SETUP.md for deployment instructions
+
+# Configuration for daily trading job
+trading_job:
+  name: "qrl-trading-daily"
+  description: "Daily QRL trading bot execution"
+  schedule: "0 9 * * *"              # Daily at 9:00 AM UTC
+  timezone: "Asia/Taipei"            # UTC+8
+  region: "asia-east1"
+  
+  # Target: Cloud Run Job
+  target:
+    type: "cloud_run_job"
+    job_name: "qrl-trading-job"
+    region: "asia-east1"
+  
+  # Retry configuration
+  retry_config:
+    max_retry_attempts: 2
+    max_retry_duration: "3600s"      # 1 hour
+    min_backoff_duration: "5s"
+    max_backoff_duration: "60s"
+
+# Example: Multiple schedules (utilize free tier)
+# Uncomment to enable additional schedules
+
+# Morning check (use second free job)
+# morning_check:
+#   name: "qrl-trading-morning"
+#   description: "Morning market check"
+#   schedule: "0 6 * * *"            # Daily at 6:00 AM UTC
+#   timezone: "Asia/Taipei"
+#   region: "asia-east1"
+#   target:
+#     type: "cloud_run_job"
+#     job_name: "qrl-trading-job"
+#     region: "asia-east1"
+
+# Evening check (use third free job)
+# evening_check:
+#   name: "qrl-trading-evening"
+#   description: "Evening market check"
+#   schedule: "0 18 * * *"           # Daily at 6:00 PM UTC
+#   timezone: "Asia/Taipei"
+#   region: "asia-east1"
+#   target:
+#     type: "cloud_run_job"
+#     job_name: "qrl-trading-job"
+#     region: "asia-east1"
+
+# Common schedule patterns:
+# - "0 9 * * *"          Daily at 9:00 AM
+# - "0 */4 * * *"        Every 4 hours
+# - "0 9 * * 1-5"        Weekdays at 9:00 AM
+# - "0 9,15 * * *"       Daily at 9:00 AM and 3:00 PM
+# - "*/30 * * * *"       Every 30 minutes

@@ -1,0 +1,65 @@
+# cloudbuild-job.yaml
+# Google Cloud Build configuration for QRL Trading Bot - Cloud Run Jobs
+# 
+# Purpose:
+# 1. Build Docker image for Cloud Run Jobs (trading bot execution)
+# 2. Push to Container Registry
+# 3. Deploy as Cloud Run Job (scheduled execution, not web service)
+#
+# Usage:
+#   gcloud builds submit --config cloudbuild-job.yaml
+
+substitutions:
+  _IMAGE_TAG: "latest"       # Can change to version tags like v1.0.0
+  _REGION: "asia-east1"      # Cloud Run Jobs region
+
+steps:
+  # 1️⃣ Build the Docker container for Cloud Run Jobs
+  - name: 'gcr.io/cloud-builders/docker'
+    args: 
+      - 'build'
+      - '-f'
+      - 'Dockerfile.job'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/qrl-bot-job:${_IMAGE_TAG}'
+      - '.'
+
+  # 2️⃣ Push the Docker image to Container Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/$PROJECT_ID/qrl-bot-job:${_IMAGE_TAG}']
+
+  # 3️⃣ Deploy to Cloud Run Jobs
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: bash
+    args:
+      - '-c'
+      - |
+        set -e
+        echo "Deploying to Cloud Run Jobs"
+        
+        # Create or update Cloud Run Job
+        gcloud run jobs update qrl-trading-job \
+          --image gcr.io/$PROJECT_ID/qrl-bot-job:${_IMAGE_TAG} \
+          --region ${_REGION} \
+          --max-retries 1 \
+          --task-timeout 10m \
+          --vpc-connector qrl-api-connector \
+          --vpc-egress all-traffic \
+          --set-env-vars SYMBOL=QRL/USDT,BASE_ORDER_USDT=1.5,MAX_POSITION_USDT=2.0,PRICE_OFFSET=0.98,REDIS_URL=redis://default:iBefSqwUpkvrEDxix5EcerQUoiq8ke8p@redis-18847.c334.asia-southeast2-1.gce.cloud.redislabs.com:18847,REDIS_CACHE_TTL=600 \
+          2>/dev/null || \
+        gcloud run jobs create qrl-trading-job \
+          --image gcr.io/$PROJECT_ID/qrl-bot-job:${_IMAGE_TAG} \
+          --region ${_REGION} \
+          --max-retries 1 \
+          --task-timeout 10m \
+          --vpc-connector qrl-api-connector \
+          --vpc-egress all-traffic \
+          --set-env-vars SYMBOL=QRL/USDT,BASE_ORDER_USDT=1.5,MAX_POSITION_USDT=2.0,PRICE_OFFSET=0.98,REDIS_URL=redis://default:iBefSqwUpkvrEDxix5EcerQUoiq8ke8p@redis-18847.c334.asia-southeast2-1.gce.cloud.redislabs.com:18847,REDIS_CACHE_TTL=600
+        
+        echo "✅ Cloud Run Job deployed successfully"
+
+images:
+  - 'gcr.io/$PROJECT_ID/qrl-bot-job:${_IMAGE_TAG}'
+
+options:
+  logging: CLOUD_LOGGING_ONLY

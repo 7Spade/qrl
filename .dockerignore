@@ -1,49 +1,57 @@
-# Git
-.git
-.gitignore
-.github
-
 # Python
-__pycache__
+__pycache__/
 *.py[cod]
 *$py.class
 *.so
 .Python
-*.egg-info
-.pytest_cache
-.coverage
-htmlcov
-
-# Virtual environments
-venv
-env
-ENV
+env/
+venv/
+ENV/
 .venv
 
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
 # IDE
-.vscode
-.idea
+.vscode/
+.idea/
 *.swp
 *.swo
-.DS_Store
 
-# Documentation (not needed in container)
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Documentation
+docs/
 *.md
 !README.md
 
-# Database (will be created in container)
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# Temporary files
+*.log
+tmp/
+temp/
+
+# Local data
 data/
 *.db
 *.sqlite
 
-# Logs
-*.log
-logs/
-
-# Environment files (use Cloud Run secrets instead)
+# Environment files (will be set via Cloud Run)
 .env
-.env.example
+.env.local
+.env.*.local
 
-# Build artifacts
-dist
-build
+# Cloud Build
+cloudbuild*.yaml
