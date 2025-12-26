@@ -81,6 +81,34 @@ class ExchangeConfig(BaseModel):
         )
 
 
+class CacheConfig(BaseModel):
+    """Cache and Redis configuration."""
+    
+    redis_url: Optional[str] = Field(
+        default=None,
+        description="Redis connection URL (redis://user:pass@host:port)"
+    )
+    redis_enabled: bool = Field(
+        default=False,
+        description="Enable Redis caching"
+    )
+    cache_ttl: int = Field(
+        default=60,
+        gt=0,
+        description="Cache TTL in seconds"
+    )
+    
+    @classmethod
+    def from_env(cls) -> "CacheConfig":
+        """Load cache config from environment variables."""
+        redis_url = os.getenv("REDIS_URL")
+        return cls(
+            redis_url=redis_url,
+            redis_enabled=bool(redis_url),  # Auto-enable if URL provided
+            cache_ttl=int(os.getenv("REDIS_CACHE_TTL", "60")),
+        )
+
+
 class MonitoringConfig(BaseModel):
     """Monitoring and alerting configuration."""
     
@@ -115,6 +143,7 @@ class AppConfig(BaseModel):
     trading: TradingConfig = Field(default_factory=TradingConfig)
     exchange: ExchangeConfig = Field(default_factory=ExchangeConfig)
     monitoring: MonitoringConfig = Field(default_factory=MonitoringConfig)
+    cache: CacheConfig = Field(default_factory=CacheConfig)
     
     @classmethod
     def load(cls) -> "AppConfig":
@@ -132,6 +161,7 @@ class AppConfig(BaseModel):
             ),
             exchange=ExchangeConfig.from_env(),
             monitoring=MonitoringConfig.from_env(),
+            cache=CacheConfig.from_env(),
         )
 
 

@@ -128,6 +128,12 @@ PRICE_OFFSET=0.98
 # Monitoring (optional)
 LOG_LEVEL=INFO
 LOG_FILE=logs/trading.log
+
+# Redis Cache (optional - for performance optimization)
+# Uncomment and configure if you want to use Redis caching
+# REDIS_URL=redis://default:password@your-redis-host:port
+# REDIS_CACHE_TTL=60
+# See docs/REDIS_SETUP.md for details
 ```
 
 ---
