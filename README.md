@@ -144,16 +144,26 @@ Edit `config.py`:
 
 ```
 qrl/
-├── config.py          # Configuration
-├── exchange.py        # MEXC integration
-├── main.py           # Trading logic
-├── risk.py           # Risk checks
-├── state.py          # Position tracking
-├── strategy.py       # EMA strategy
-├── web/app.py        # Dashboard
-├── Dockerfile        # Container image
-└── cloudbuild.yaml   # Cloud Build config
+├── config.py                  # Configuration
+├── exchange.py                # MEXC integration
+├── main.py                   # Trading logic
+├── risk.py                   # Risk checks
+├── state.py                  # Position tracking
+├── strategy.py               # EMA strategy
+├── web/app.py                # Dashboard
+├── Dockerfile                # Container image
+├── cloudbuild.yaml           # Cloud Build config
+├── AUTHENTICATION_GUIDE.md   # Cloud Run authentication guide
+└── MEXC_API_SETUP.md        # MEXC API setup guide
 ```
+
+## 📚 Documentation
+
+- **[QUICK_REFERENCE.md](QUICK_REFERENCE.md)** - Quick reference for common tasks
+- **[MEXC_API_SETUP.md](MEXC_API_SETUP.md)** - Comprehensive guide for setting up MEXC API credentials
+- **[AUTHENTICATION_GUIDE.md](AUTHENTICATION_GUIDE.md)** - Detailed guide for Cloud Run authentication (public vs IAM)
+- **[快速開始.md](快速開始.md)** - Chinese quick start guide
+- **[CHANGELOG.md](CHANGELOG.md)** - Version history and changes
 
 ## 🛡️ Security
 
