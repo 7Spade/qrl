@@ -10,16 +10,41 @@ A cryptocurrency trading bot for QRL/USDT pair on MEXC exchange, implementing a 
 - **Position Tracking**: SQLite-based state persistence
 - **Web Dashboard**: Real-time monitoring via FastAPI
 - **Cloud Ready**: Docker support for Google Cloud Run
+- **Redis Caching**: High-performance caching (REQUIRED - see [Redis Setup](#redis-setup))
 
 ## 📋 Prerequisites
 
 - Python 3.9 or higher
+- **Redis server** (REQUIRED for caching - see [Redis Setup](#redis-setup))
 - MEXC exchange account with API keys
   - Create at: https://www.mexc.com/user/openapi
   - Enable "Spot Trading" permission
 - (Optional) Google Cloud account for deployment
 
 ## 🚀 Quick Start
+
+### Redis Setup (REQUIRED)
+
+Redis is required for trading bot operation. Choose one option:
+
+**Option A: Local Redis (Development)**
+```bash
+# Using Docker (recommended)
+docker run -d --name redis -p 6379:6379 redis:latest
+
+# Or install locally
+# Ubuntu/Debian
+sudo apt-get install redis-server && sudo systemctl start redis
+
+# macOS
+brew install redis && brew services start redis
+```
+
+**Option B: Cloud Redis (Production)**
+- [Redis Labs](https://redis.com/try-free/) - Free tier available
+- AWS ElastiCache
+- Google Cloud Memorystore
+- Azure Cache for Redis
 
 ### Local Development
 
@@ -31,9 +56,14 @@ pip install -r requirements.txt
 
 # 2. Configure (see docs/MEXC_API_SETUP.md for details)
 cp .env.example .env
-# Edit .env with your MEXC API credentials
+# Edit .env with:
+#   - MEXC API credentials
+#   - Redis URL (REQUIRED): REDIS_URL=redis://localhost:6379
 
-# 3. Run
+# 3. Verify Redis connection
+redis-cli ping  # Should return PONG
+
+# 4. Run
 python main.py              # Trading bot
 uvicorn web.app:app --reload  # Web dashboard
 ```
@@ -140,6 +170,95 @@ Common issues and solutions:
 | 403 Cloud Run error | See [Authentication Guide](docs/AUTHENTICATION_GUIDE.md) |
 
 For detailed troubleshooting, see [docs/QUICK_REFERENCE.md](docs/QUICK_REFERENCE.md).
+
+## 📦 Redis Caching (REQUIRED)
+
+⚠️ **BREAKING CHANGE:** Redis is now REQUIRED for trading bot operation (changed from optional in v1.x).
+
+The QRL trading bot requires Redis for high-performance caching. This ensures consistent performance and eliminates technical debt from dual-code paths.
+
+### Why Redis is Required
+
+- **Performance**: 10-100x faster data access
+- **Cost Reduction**: Minimize expensive exchange API calls  
+- **Rate Limit Protection**: Stay within exchange API limits
+- **Consistency**: No conditional caching logic
+- **Fail Fast**: Clear errors at startup vs. degraded performance
+
+### Features
+
+- **Namespace Isolation**: Separate cache keys per environment (dev/staging/prod)
+- **Version Control**: Built-in cache versioning for schema migrations
+- **Configurable TTLs**: Fine-tuned cache expiration per data type
+- **Safe Invalidation**: Granular cache clearing without affecting shared Redis
+- **Error Handling**: Robust JSON serialization for trading data types (Decimal, datetime)
+- **Memory Management**: LRU eviction policy prevents unbounded growth
+- **Cache Warming**: Optional preloading of frequently accessed data
+
+### Configuration
+
+**Minimum Required (.env):**
+```bash
+# REQUIRED - bot will not start without this
+REDIS_URL=redis://localhost:6379
+```
+
+**Full Configuration (.env):**
+```bash
+# Redis connection (REQUIRED)
+REDIS_URL=redis://default:password@your-redis-host:6379
+
+# Optional: TTL configuration (in seconds)
+REDIS_CACHE_TTL=60              # Default TTL
+REDIS_CACHE_TTL_TICKER=5        # Fast-changing ticker data
+REDIS_CACHE_TTL_OHLCV=86400     # Historical OHLCV (24 hours - candles rarely change)
+REDIS_CACHE_TTL_DEALS=10        # Moderately changing deals
+REDIS_CACHE_TTL_ORDERBOOK=5     # Fast-changing order book
+
+# Optional: Namespace for environment separation
+REDIS_NAMESPACE=qrl             # Use "qrl-dev", "qrl-staging", etc.
+```
+
+### Usage Examples
+
+```python
+from src.data.exchange import ExchangeClient
+
+# Automatic caching (uses configured TTLs)
+data = exchange_client.fetch_ohlcv("QRL/USDT", "1d", 120)
+
+# Force bypass cache
+data = exchange_client.fetch_ticker("QRL/USDT", use_cache=False)
+
+# Cache invalidation
+exchange_client.invalidate_cache(symbol="QRL/USDT")  # Clear specific symbol
+exchange_client.invalidate_cache()                   # Clear all cache
+
+# Cache statistics
+stats = exchange_client.get_cache_stats()
+```
+
+### Migration from v1.x
+
+If upgrading from a version where Redis was optional:
+
+1. **Install Redis** (see [Redis Setup](#redis-setup) above)
+2. **Add REDIS_URL** to your .env file
+3. **Remove conditional cache checks** from your code
+4. See [docs/REDIS_BREAKING_CHANGES.md](docs/REDIS_BREAKING_CHANGES.md) for complete migration guide
+
+### Troubleshooting
+
+**Error: "REDIS_URL environment variable is required"**
+- Add `REDIS_URL=redis://localhost:6379` to .env
+
+**Error: "Failed to connect to Redis"**
+- Verify Redis is running: `redis-cli ping` → should return `PONG`
+- Start Redis: `docker run -d -p 6379:6379 redis:latest`
+
+For detailed implementation, see:
+- [docs/REDIS_IMPROVEMENTS.md](docs/REDIS_IMPROVEMENTS.md) - Technical details
+- [docs/REDIS_BREAKING_CHANGES.md](docs/REDIS_BREAKING_CHANGES.md) - Migration guide
 
 ## 📝 License
 
