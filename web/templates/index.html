@@ -832,21 +832,37 @@
     // Fetch position data
     async function fetchPositionData() {
       try {
-        const response = await fetch('/api/statistics');
-        const data = await response.json();
+        const statsResponse = await fetch('/api/statistics');
+        const statsData = await statsResponse.json();
         
-        if (data.error) {
+        // Fetch market data for balances
+        const marketResponse = await fetch('/api/market');
+        const marketData = await marketResponse.json();
+        
+        if (statsData.error) {
           document.getElementById('position-data').innerHTML = 
-            `<div class="data-row"><span class="negative">Error: ${data.error}</span></div>`;
+            `<div class="data-row"><span class="negative">Error: ${statsData.error}</span></div>`;
           return;
         }
         
-        const utilization = data.position_utilization_pct || 0;
-        const currentPosition = data.current_position || 0;
-        const maxPosition = data.max_position_usdt || 0;
-        const availableCapacity = data.available_capacity || 0;
+        const utilization = statsData.position_utilization_pct || 0;
+        const currentPosition = statsData.current_position || 0;
+        const maxPosition = statsData.max_position_usdt || 0;
+        const availableCapacity = statsData.available_capacity || 0;
+        
+        // Get balances from market data
+        const qrlBalance = marketData.balances?.qrl || 0;
+        const usdtBalance = marketData.balances?.usdt || 0;
         
         document.getElementById('position-data').innerHTML = `
+          <div class="data-row">
+            <span class="label">QRL Holdings:</span>
+            <span class="value positive">${qrlBalance.toFixed(4)} QRL</span>
+          </div>
+          <div class="data-row">
+            <span class="label">USDT Balance:</span>
+            <span class="value">${usdtBalance.toFixed(2)} USDT</span>
+          </div>
           <div class="data-row">
             <span class="label">Current Position:</span>
             <span class="value">$${currentPosition.toFixed(2)}</span>
