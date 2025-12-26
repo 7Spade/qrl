@@ -14,6 +14,7 @@ Usage:
 from typing import Dict, Any, List
 from datetime import datetime
 from pathlib import Path
+import logging
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
@@ -26,14 +27,27 @@ from src.data.exchange import ExchangeClient
 from src.strategies.ema_strategy import EMAAccumulationStrategy
 
 
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 app = FastAPI(title="QRL Trading Bot Dashboard")
 templates = Jinja2Templates(directory="web/templates")
 
-# Initialize components
-config = AppConfig.load()
-state_manager = StateManager()
-exchange_client = ExchangeClient(config.exchange, cache_config=config.cache)
-strategy = EMAAccumulationStrategy()
+# Initialize components with error handling
+try:
+    config = AppConfig.load()
+    state_manager = StateManager()
+    exchange_client = ExchangeClient(config.exchange, cache_config=config.cache)
+    strategy = EMAAccumulationStrategy()
+    logger.info("✅ All components initialized successfully")
+except Exception as e:
+    logger.error(f"❌ Failed to initialize components: {e}")
+    # Create dummy objects to prevent crashes
+    config = None
+    state_manager = None
+    exchange_client = None
+    strategy = None
 
 
 @app.get("/health")
@@ -236,8 +250,8 @@ def get_statistics() -> JSONResponse:
         # Add position information
         current_position = state_manager.get_position()
         stats["current_position"] = current_position
-        stats["max_position"] = config.trading.max_position_usdt
-        stats["position_utilization"] = (
+        stats["max_position_usdt"] = config.trading.max_position_usdt
+        stats["position_utilization_pct"] = (
             (current_position / config.trading.max_position_usdt) * 100
             if config.trading.max_position_usdt > 0 else 0
         )
@@ -312,12 +326,24 @@ def get_market_data() -> JSONResponse:
         JSONResponse: Market data and indicators
     """
     try:
+        if not all([config, exchange_client, strategy]):
+            return JSONResponse(
+                {"error": "System not initialized properly. Check configuration."},
+                status_code=500
+            )
+        
         ticker = exchange_client.fetch_ticker(config.trading.symbol)
         ohlcv = exchange_client.fetch_ohlcv(
             config.trading.symbol,
             config.trading.timeframe,
             limit=120
         )
+        
+        if not ohlcv or len(ohlcv) == 0:
+            return JSONResponse(
+                {"error": "OHLCV data is empty"},
+                status_code=500
+            )
         
         signal = strategy.analyze(ohlcv)
         
@@ -332,6 +358,7 @@ def get_market_data() -> JSONResponse:
             "timestamp": datetime.utcnow().isoformat(),
         })
     except Exception as e:
+        logger.error(f"Error fetching market data: {e}")
         return JSONResponse(
             {"error": str(e)},
             status_code=500
@@ -348,7 +375,7 @@ def get_chart_data(timeframe: str = "1h") -> JSONResponse:
         timeframe: Timeframe for chart data (1m, 5m, 15m, 30m, 1h, 4h, 1d)
     
     Returns:
-        JSONResponse: Chart data with timestamps, prices, volumes, and EMA values
+        JSONResponse: Chart data with timestamps, prices, volumes, MA, and EMA values
     """
     try:
         # Validate timeframe
@@ -366,11 +393,13 @@ def get_chart_data(timeframe: str = "1h") -> JSONResponse:
         if not ohlcv or len(ohlcv) == 0:
             return JSONResponse({"error": "No data available"}, status_code=404)
         
-        # Calculate EMA for each data point
+        # Calculate indicators for chart
         import pandas as pd
         df = pd.DataFrame(ohlcv, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
         
-        # Calculate EMAs
+        # Calculate MAs and EMAs
+        df['ma20'] = df['close'].rolling(window=20).mean()
+        df['ma60'] = df['close'].rolling(window=60).mean()
         df['ema20'] = df['close'].ewm(span=20, adjust=False).mean()
         df['ema60'] = df['close'].ewm(span=60, adjust=False).mean()
         
@@ -381,12 +410,14 @@ def get_chart_data(timeframe: str = "1h") -> JSONResponse:
                 for ts in df['timestamp'].tolist()
             ],
             "prices": df['close'].tolist(),
+            "ma20": df['ma20'].fillna(0).tolist(),
+            "ma60": df['ma60'].fillna(0).tolist(),
             "ema20": df['ema20'].tolist(),
             "ema60": df['ema60'].tolist(),
             "volumes": df['volume'].tolist(),
             "metadata": {
                 "symbol": config.trading.symbol,
-                "timeframe": config.trading.timeframe,
+                "timeframe": timeframe,
                 "data_points": len(df),
                 "timestamp": datetime.utcnow().isoformat(),
             }
