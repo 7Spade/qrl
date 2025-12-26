@@ -843,18 +843,13 @@
         const marketResponse = await fetch('/api/market');
         const marketData = await marketResponse.json();
         
-        if (statsData.error) {
-          document.getElementById('position-data').innerHTML = 
-            `<div class="data-row"><span class="negative">Error: ${statsData.error}</span></div>`;
-          return;
-        }
-        
+        // Get values with fallbacks (don't block on errors)
         const utilization = statsData.position_utilization_pct || 0;
         const currentPosition = statsData.current_position || 0;
         const maxPosition = statsData.max_position_usdt || 0;
         const availableCapacity = statsData.available_capacity || 0;
         
-        // Get balances from market data
+        // Get balances from market data - ALWAYS display these
         const qrlBalance = marketData.balances?.qrl || 0;
         const usdtBalance = marketData.balances?.usdt || 0;
         
