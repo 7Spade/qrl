@@ -51,6 +51,21 @@ Complete documentation for the QRL Trading Bot project.
 ### Advanced Topics
 
 - **[交易機器人完整規範指南.md](交易機器人完整規範指南.md)** - 完整技術規範（中文）
+  - 通用最佳實踐參考
+  - 系統架構設計
+  - 策略框架與風控體系
+  - 適合作為未來擴展參考
+
+- **[交易機器人頁面指南.md](交易機器人頁面指南.md)** - Web 介面設計指南（中文）
+  - QRL 專案專用介面規劃
+  - 當前實現功能說明
+  - 未來擴展功能參考
+  - 實現優先級建議
+
+- **[SPECIFICATION_ANALYSIS.md](SPECIFICATION_ANALYSIS.md)** - Specification gap analysis
+  - Current vs ideal state comparison
+  - Priority-based recommendations
+  - Implementation roadmap
 
 ## 🔍 Quick Links
 
