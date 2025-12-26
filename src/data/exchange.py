@@ -6,7 +6,6 @@ error handling, rate limiting, automatic retry, and Redis caching.
 """
 from typing import Dict, Any, List, Optional, Callable
 import ccxt
-import hashlib
 import time
 from functools import wraps
 from src.core.config import ExchangeConfig, CacheConfig
@@ -47,23 +46,35 @@ def retry_on_network_error(max_attempts: int = 3, delay: float = 1.0):
 
 
 class ExchangeClient:
-    """MEXC exchange client wrapper with Redis caching and retry support."""
+    """MEXC exchange client wrapper with Redis caching and persistent storage."""
     
-    def __init__(self, config: ExchangeConfig, cache_config: Optional[CacheConfig] = None):
+    def __init__(
+        self,
+        config: ExchangeConfig,
+        cache_config: CacheConfig,
+        state_manager: Optional['StateManager'] = None
+    ):
         """
         Initialize exchange client.
         
         Args:
             config: Exchange configuration
-            cache_config: Optional cache configuration for Redis
+            cache_config: Cache configuration (REQUIRED)
+            state_manager: Optional StateManager for persistent OHLCV storage
+            
+        Raises:
+            RuntimeError: If cache initialization fails
         """
         self.config = config
+        self.cache_config = cache_config
         self._exchange: Optional[ccxt.Exchange] = None
-        self._cache: Optional[CacheClient] = None
+        self._state_manager = state_manager
         
-        # Initialize cache if provided
-        if cache_config:
-            self._cache = CacheClient(cache_config)
+        # Initialize cache - REQUIRED
+        self._cache = CacheClient(
+            cache_config,
+            namespace=cache_config.namespace
+        )
     
     @property
     def exchange(self) -> ccxt.Exchange:
@@ -86,17 +97,17 @@ class ExchangeClient:
     
     def _get_cache_key(self, method: str, *args) -> str:
         """
-        Generate cache key for API call.
+        Generate human-readable cache key for API call.
         
         Args:
             method: API method name
             args: Method arguments
             
         Returns:
-            Cache key string
+            Cache key string (e.g., "ohlcv:QRL/USDT:1d:120")
         """
-        key_data = f"{method}:{':'.join(str(arg) for arg in args)}"
-        return f"mexc:{hashlib.md5(key_data.encode()).hexdigest()[:16]}"
+        # Use readable cache keys instead of MD5 hash for better debugging
+        return f"{method}:{':'.join(str(arg) for arg in args)}"
     
     @retry_on_network_error(max_attempts=3, delay=1.0)
     def fetch_ticker(self, symbol: str, use_cache: bool = True) -> Dict[str, Any]:
@@ -113,11 +124,12 @@ class ExchangeClient:
         Raises:
             ccxt.NetworkError: Network connection failed after retries
             ccxt.ExchangeError: Exchange API error
+            RuntimeError: If Redis operation fails
         """
         cache_key = self._get_cache_key("ticker", symbol)
         
         # Try cache first if enabled
-        if use_cache and self._cache and self._cache.enabled:
+        if use_cache:
             cached_data = self._cache.get(cache_key)
             if cached_data:
                 return cached_data
@@ -125,9 +137,8 @@ class ExchangeClient:
         # Fetch from API
         data = self.exchange.fetch_ticker(symbol)
         
-        # Store in cache (5 second TTL for ticker data)
-        if self._cache and self._cache.enabled:
-            self._cache.set(cache_key, data, ttl=5)
+        # Store in cache with configured TTL for ticker data
+        self._cache.set(cache_key, data, ttl=self.cache_config.cache_ttl_ticker)
         
         return data
     
@@ -154,11 +165,12 @@ class ExchangeClient:
         Raises:
             ccxt.NetworkError: Network connection failed after retries
             ccxt.ExchangeError: Exchange API error
+            RuntimeError: If Redis operation fails
         """
         cache_key = self._get_cache_key("ohlcv", symbol, timeframe, limit)
         
         # Try cache first if enabled
-        if use_cache and self._cache and self._cache.enabled:
+        if use_cache:
             cached_data = self._cache.get(cache_key)
             if cached_data:
                 return cached_data
@@ -166,9 +178,8 @@ class ExchangeClient:
         # Fetch from API
         data = self.exchange.fetch_ohlcv(symbol, timeframe, limit)
         
-        # Store in cache (60 second TTL for OHLCV data)
-        if self._cache and self._cache.enabled:
-            self._cache.set(cache_key, data, ttl=60)
+        # Store in cache with configured TTL for OHLCV data
+        self._cache.set(cache_key, data, ttl=self.cache_config.cache_ttl_ohlcv)
         
         return data
     
@@ -232,11 +243,12 @@ class ExchangeClient:
         Raises:
             ccxt.NetworkError: Network connection failed after retries
             ccxt.ExchangeError: Exchange API error
+            RuntimeError: If Redis operation fails
         """
         cache_key = self._get_cache_key("deals", symbol, limit)
         
         # Try cache first if enabled
-        if use_cache and self._cache and self._cache.enabled:
+        if use_cache:
             cached_data = self._cache.get(cache_key)
             if cached_data:
                 return cached_data
@@ -244,9 +256,8 @@ class ExchangeClient:
         # Fetch from API
         data = self.exchange.fetch_trades(symbol, limit=limit)
         
-        # Store in cache (10 second TTL for deals data)
-        if self._cache and self._cache.enabled:
-            self._cache.set(cache_key, data, ttl=10)
+        # Store in cache with configured TTL for deals data
+        self._cache.set(cache_key, data, ttl=self.cache_config.cache_ttl_deals)
         
         return data
     
@@ -273,11 +284,12 @@ class ExchangeClient:
         Raises:
             ccxt.NetworkError: Network connection failed after retries
             ccxt.ExchangeError: Exchange API error
+            RuntimeError: If Redis operation fails
         """
         cache_key = self._get_cache_key("orderbook", symbol, limit)
         
         # Try cache first if enabled
-        if use_cache and self._cache and self._cache.enabled:
+        if use_cache:
             cached_data = self._cache.get(cache_key)
             if cached_data:
                 return cached_data
@@ -285,9 +297,8 @@ class ExchangeClient:
         # Fetch from API
         data = self.exchange.fetch_order_book(symbol, limit=limit)
         
-        # Store in cache (5 second TTL for order book data)
-        if self._cache and self._cache.enabled:
-            self._cache.set(cache_key, data, ttl=5)
+        # Store in cache with configured TTL for order book data
+        self._cache.set(cache_key, data, ttl=self.cache_config.cache_ttl_orderbook)
         
         return data
     
@@ -297,7 +308,35 @@ class ExchangeClient:
         
         Returns:
             Dictionary with cache stats
+            
+        Raises:
+            RuntimeError: If Redis operation fails
         """
-        if self._cache:
-            return self._cache.get_stats()
-        return {"enabled": False, "status": "not configured"}
+        return self._cache.get_stats()
+    
+    def invalidate_cache(self, symbol: str | None = None) -> dict:
+        """
+        Invalidate cache entries.
+        
+        Args:
+            symbol: Optional symbol to invalidate. If None, clears all cache.
+            
+        Returns:
+            Dictionary with invalidation results
+            
+        Raises:
+            RuntimeError: If Redis operation fails
+        """
+        if symbol:
+            count = self._cache.clear_symbol(symbol)
+            return {
+                "symbol": symbol,
+                "keys_deleted": count,
+                "status": "success"
+            }
+        else:
+            self._cache.clear_all()
+            return {
+                "all_cleared": True,
+                "status": "success"
+            }
