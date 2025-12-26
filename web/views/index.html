@@ -752,9 +752,10 @@
         const indicatorsData = await indicatorsResponse.json();
         
         if (chartData.error || indicatorsData.error) {
-          console.error('Chart data error:', chartData.error || indicatorsData.error);
+          const errorMsg = chartData.message || indicatorsData.message || chartData.error || indicatorsData.error;
+          console.log('Chart data unavailable:', errorMsg);
           document.getElementById('chartLoading').innerHTML = 
-            '<span class="negative">Error loading chart data</span>';
+            `<span class="status-warning">${errorMsg}</span>`;
           return;
         }
         
@@ -790,42 +791,45 @@
         const data = await response.json();
         
         if (data.error) {
+          // Show error message for market data
           document.getElementById('market-data').innerHTML = 
-            `<div class="data-row"><span class="negative">Error: ${data.error}</span></div>`;
-          return;
+            `<div class="data-row"><span class="status-warning">${data.error}</span></div>`;
+          // Don't return early - market data error doesn't affect balance display
+        } else {
+          const changeClass = data.change_24h >= 0 ? 'positive' : 'negative';
+          const changeSymbol = data.change_24h >= 0 ? '+' : '';
+          
+          document.getElementById('market-data').innerHTML = `
+            <div class="data-row">
+              <span class="label">Symbol:</span>
+              <span class="value">${data.symbol}</span>
+            </div>
+            <div class="data-row">
+              <span class="label">Price:</span>
+              <span class="value">$${data.price.toFixed(6)}</span>
+            </div>
+            <div class="data-row">
+              <span class="label">24H Change:</span>
+              <span class="value ${changeClass}">${changeSymbol}${data.change_24h.toFixed(2)}%</span>
+            </div>
+            <div class="data-row">
+              <span class="label">EMA 20:</span>
+              <span class="value">$${data.ema20.toFixed(6)}</span>
+            </div>
+            <div class="data-row">
+              <span class="label">EMA 60:</span>
+              <span class="value">$${data.ema60.toFixed(6)}</span>
+            </div>
+            <div class="data-row">
+              <span class="label">Data Delay:</span>
+              <span class="value status-connected">< 1s (Redis)</span>
+            </div>
+          `;
         }
-        
-        const changeClass = data.change_24h >= 0 ? 'positive' : 'negative';
-        const changeSymbol = data.change_24h >= 0 ? '+' : '';
-        
-        document.getElementById('market-data').innerHTML = `
-          <div class="data-row">
-            <span class="label">Symbol:</span>
-            <span class="value">${data.symbol}</span>
-          </div>
-          <div class="data-row">
-            <span class="label">Price:</span>
-            <span class="value">$${data.price.toFixed(6)}</span>
-          </div>
-          <div class="data-row">
-            <span class="label">24H Change:</span>
-            <span class="value ${changeClass}">${changeSymbol}${data.change_24h.toFixed(2)}%</span>
-          </div>
-          <div class="data-row">
-            <span class="label">EMA 20:</span>
-            <span class="value">$${data.ema20.toFixed(6)}</span>
-          </div>
-          <div class="data-row">
-            <span class="label">EMA 60:</span>
-            <span class="value">$${data.ema60.toFixed(6)}</span>
-          </div>
-          <div class="data-row">
-            <span class="label">Data Delay:</span>
-            <span class="value status-connected">< 1s (Redis)</span>
-          </div>
-        `;
       } catch (error) {
         console.error('Error fetching market data:', error);
+        document.getElementById('market-data').innerHTML = 
+          `<div class="data-row"><span class="negative">Failed to fetch market data</span></div>`;
       }
     }
     

@@ -353,10 +353,20 @@ def get_market_data(_: bool = Depends(check_services_initialized)) -> JSONRespon
         )
         
         if not ohlcv or len(ohlcv) == 0:
-            return JSONResponse(
-                {"error": "Market data unavailable. Exchange may be initializing or experiencing connectivity issues."},
-                status_code=200  # Changed to 200 to allow graceful handling
-            )
+            # Still fetch balances even when market data is unavailable
+            balances = {"qrl": 0.0, "usdt": 0.0}
+            try:
+                balance_data = exchange_client.fetch_balance()
+                if balance_data and "total" in balance_data:
+                    balances["qrl"] = float(balance_data["total"].get("QRL", 0))
+                    balances["usdt"] = float(balance_data["total"].get("USDT", 0))
+            except Exception as e:
+                logger.warning(f"Error fetching balances: {e}")
+            
+            return JSONResponse({
+                "error": "Market data unavailable. Exchange may be initializing or experiencing connectivity issues.",
+                "balances": balances
+            }, status_code=200)  # Changed to 200 to allow graceful handling
         
         signal = strategy.analyze(ohlcv)
         
@@ -487,7 +497,10 @@ def get_indicators(timeframe: str = "1h", _: bool = Depends(check_services_initi
         )
         
         if not ohlcv or len(ohlcv) == 0:
-            return JSONResponse({"error": "No data available"}, status_code=404)
+            return JSONResponse({
+                "error": "OHLCV data is empty",
+                "message": "⚠️ Waiting for market data... (Exchange may be initializing)"
+            }, status_code=200)  # 200 with error field for graceful degradation
         
         df = pd.DataFrame(ohlcv, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
         
