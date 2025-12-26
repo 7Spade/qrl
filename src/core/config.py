@@ -95,7 +95,31 @@ class CacheConfig(BaseModel):
     cache_ttl: int = Field(
         default=60,
         gt=0,
-        description="Cache TTL in seconds"
+        description="Default cache TTL in seconds"
+    )
+    cache_ttl_ticker: int = Field(
+        default=5,
+        gt=0,
+        description="Cache TTL for ticker data (fast-changing)"
+    )
+    cache_ttl_ohlcv: int = Field(
+        default=60,
+        gt=0,
+        description="Cache TTL for OHLCV data"
+    )
+    cache_ttl_deals: int = Field(
+        default=10,
+        gt=0,
+        description="Cache TTL for deals/trades data"
+    )
+    cache_ttl_orderbook: int = Field(
+        default=5,
+        gt=0,
+        description="Cache TTL for order book data"
+    )
+    namespace: str = Field(
+        default="qrl",
+        description="Redis key namespace for environment separation"
     )
     
     @classmethod
@@ -106,6 +130,11 @@ class CacheConfig(BaseModel):
             redis_url=redis_url,
             redis_enabled=bool(redis_url),  # Auto-enable if URL provided
             cache_ttl=int(os.getenv("REDIS_CACHE_TTL", "60")),
+            cache_ttl_ticker=int(os.getenv("REDIS_CACHE_TTL_TICKER", "5")),
+            cache_ttl_ohlcv=int(os.getenv("REDIS_CACHE_TTL_OHLCV", "60")),
+            cache_ttl_deals=int(os.getenv("REDIS_CACHE_TTL_DEALS", "10")),
+            cache_ttl_orderbook=int(os.getenv("REDIS_CACHE_TTL_ORDERBOOK", "5")),
+            namespace=os.getenv("REDIS_NAMESPACE", "qrl"),
         )
 
 

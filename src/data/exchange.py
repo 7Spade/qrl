@@ -58,12 +58,16 @@ class ExchangeClient:
             cache_config: Optional cache configuration for Redis
         """
         self.config = config
+        self.cache_config = cache_config
         self._exchange: Optional[ccxt.Exchange] = None
         self._cache: Optional[CacheClient] = None
         
         # Initialize cache if provided
         if cache_config:
-            self._cache = CacheClient(cache_config)
+            self._cache = CacheClient(
+                cache_config,
+                namespace=cache_config.namespace
+            )
     
     @property
     def exchange(self) -> ccxt.Exchange:
@@ -125,9 +129,9 @@ class ExchangeClient:
         # Fetch from API
         data = self.exchange.fetch_ticker(symbol)
         
-        # Store in cache (5 second TTL for ticker data)
-        if self._cache and self._cache.enabled:
-            self._cache.set(cache_key, data, ttl=5)
+        # Store in cache with configured TTL for ticker data
+        if self._cache and self._cache.enabled and self.cache_config:
+            self._cache.set(cache_key, data, ttl=self.cache_config.cache_ttl_ticker)
         
         return data
     
@@ -166,9 +170,9 @@ class ExchangeClient:
         # Fetch from API
         data = self.exchange.fetch_ohlcv(symbol, timeframe, limit)
         
-        # Store in cache (60 second TTL for OHLCV data)
-        if self._cache and self._cache.enabled:
-            self._cache.set(cache_key, data, ttl=60)
+        # Store in cache with configured TTL for OHLCV data
+        if self._cache and self._cache.enabled and self.cache_config:
+            self._cache.set(cache_key, data, ttl=self.cache_config.cache_ttl_ohlcv)
         
         return data
     
@@ -244,9 +248,9 @@ class ExchangeClient:
         # Fetch from API
         data = self.exchange.fetch_trades(symbol, limit=limit)
         
-        # Store in cache (10 second TTL for deals data)
-        if self._cache and self._cache.enabled:
-            self._cache.set(cache_key, data, ttl=10)
+        # Store in cache with configured TTL for deals data
+        if self._cache and self._cache.enabled and self.cache_config:
+            self._cache.set(cache_key, data, ttl=self.cache_config.cache_ttl_deals)
         
         return data
     
@@ -285,9 +289,9 @@ class ExchangeClient:
         # Fetch from API
         data = self.exchange.fetch_order_book(symbol, limit=limit)
         
-        # Store in cache (5 second TTL for order book data)
-        if self._cache and self._cache.enabled:
-            self._cache.set(cache_key, data, ttl=5)
+        # Store in cache with configured TTL for order book data
+        if self._cache and self._cache.enabled and self.cache_config:
+            self._cache.set(cache_key, data, ttl=self.cache_config.cache_ttl_orderbook)
         
         return data
     
@@ -301,3 +305,32 @@ class ExchangeClient:
         if self._cache:
             return self._cache.get_stats()
         return {"enabled": False, "status": "not configured"}
+    
+    def invalidate_cache(self, symbol: Optional[str] = None) -> dict:
+        """
+        Invalidate cache entries.
+        
+        Args:
+            symbol: Optional symbol to invalidate. If None, clears all cache.
+            
+        Returns:
+            Dictionary with invalidation results
+        """
+        if not self._cache:
+            return {"enabled": False, "status": "not configured"}
+        
+        if symbol:
+            count = self._cache.clear_symbol(symbol)
+            return {
+                "enabled": True,
+                "symbol": symbol,
+                "keys_deleted": count,
+                "status": "success"
+            }
+        else:
+            success = self._cache.clear_all()
+            return {
+                "enabled": True,
+                "all_cleared": success,
+                "status": "success" if success else "failed"
+            }
