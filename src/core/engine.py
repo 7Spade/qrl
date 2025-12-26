@@ -46,7 +46,10 @@ class TradingEngine:
         )
         
         # Initialize components
-        self.exchange = ExchangeClient(self.config.exchange)
+        self.exchange = ExchangeClient(
+            self.config.exchange,
+            cache_config=self.config.cache
+        )
         self.state = StateManager()
         self.risk = RiskManager(
             max_position_usdt=self.config.trading.max_position_usdt,

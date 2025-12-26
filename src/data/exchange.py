@@ -2,25 +2,33 @@
 Exchange integration module for MEXC cryptocurrency exchange.
 
 Provides abstraction layer for exchange API interactions with
-error handling and rate limiting.
+error handling, rate limiting, and Redis caching.
 """
 from typing import Dict, Any, List, Optional
 import ccxt
-from src.core.config import ExchangeConfig
+import hashlib
+from src.core.config import ExchangeConfig, CacheConfig
+from src.data.cache import CacheClient
 
 
 class ExchangeClient:
-    """MEXC exchange client wrapper."""
+    """MEXC exchange client wrapper with Redis caching support."""
     
-    def __init__(self, config: ExchangeConfig):
+    def __init__(self, config: ExchangeConfig, cache_config: Optional[CacheConfig] = None):
         """
         Initialize exchange client.
         
         Args:
             config: Exchange configuration
+            cache_config: Optional cache configuration for Redis
         """
         self.config = config
         self._exchange: Optional[ccxt.Exchange] = None
+        self._cache: Optional[CacheClient] = None
+        
+        # Initialize cache if provided
+        if cache_config:
+            self._cache = CacheClient(cache_config)
     
     @property
     def exchange(self) -> ccxt.Exchange:
@@ -41,12 +49,27 @@ class ExchangeClient:
         
         return self._exchange
     
-    def fetch_ticker(self, symbol: str) -> Dict[str, Any]:
+    def _get_cache_key(self, method: str, *args) -> str:
         """
-        Fetch current ticker data for symbol.
+        Generate cache key for API call.
+        
+        Args:
+            method: API method name
+            args: Method arguments
+            
+        Returns:
+            Cache key string
+        """
+        key_data = f"{method}:{':'.join(str(arg) for arg in args)}"
+        return f"mexc:{hashlib.md5(key_data.encode()).hexdigest()[:16]}"
+    
+    def fetch_ticker(self, symbol: str, use_cache: bool = True) -> Dict[str, Any]:
+        """
+        Fetch current ticker data for symbol with Redis caching.
         
         Args:
             symbol: Trading pair symbol
+            use_cache: Whether to use cache (default: True)
             
         Returns:
             Ticker data dictionary
@@ -55,21 +78,38 @@ class ExchangeClient:
             ccxt.NetworkError: Network connection failed
             ccxt.ExchangeError: Exchange API error
         """
-        return self.exchange.fetch_ticker(symbol)
+        cache_key = self._get_cache_key("ticker", symbol)
+        
+        # Try cache first if enabled
+        if use_cache and self._cache and self._cache.enabled:
+            cached_data = self._cache.get(cache_key)
+            if cached_data:
+                return cached_data
+        
+        # Fetch from API
+        data = self.exchange.fetch_ticker(symbol)
+        
+        # Store in cache (5 second TTL for ticker data)
+        if self._cache and self._cache.enabled:
+            self._cache.set(cache_key, data, ttl=5)
+        
+        return data
     
     def fetch_ohlcv(
         self,
         symbol: str,
         timeframe: str = "1d",
-        limit: int = 120
+        limit: int = 120,
+        use_cache: bool = True
     ) -> List[List[Any]]:
         """
-        Fetch OHLCV candlestick data.
+        Fetch OHLCV candlestick data with Redis caching.
         
         Args:
             symbol: Trading pair symbol
             timeframe: Candlestick timeframe
             limit: Number of candles to fetch
+            use_cache: Whether to use cache (default: True)
             
         Returns:
             List of OHLCV candles
@@ -78,7 +118,22 @@ class ExchangeClient:
             ccxt.NetworkError: Network connection failed
             ccxt.ExchangeError: Exchange API error
         """
-        return self.exchange.fetch_ohlcv(symbol, timeframe, limit)
+        cache_key = self._get_cache_key("ohlcv", symbol, timeframe, limit)
+        
+        # Try cache first if enabled
+        if use_cache and self._cache and self._cache.enabled:
+            cached_data = self._cache.get(cache_key)
+            if cached_data:
+                return cached_data
+        
+        # Fetch from API
+        data = self.exchange.fetch_ohlcv(symbol, timeframe, limit)
+        
+        # Store in cache (60 second TTL for OHLCV data)
+        if self._cache and self._cache.enabled:
+            self._cache.set(cache_key, data, ttl=60)
+        
+        return data
     
     def create_limit_buy_order(
         self,
@@ -115,3 +170,94 @@ class ExchangeClient:
             ccxt.ExchangeError: Exchange API error
         """
         return self.exchange.fetch_balance()
+    
+    def fetch_deals(
+        self,
+        symbol: str,
+        limit: int = 20,
+        use_cache: bool = True
+    ) -> List[Dict[str, Any]]:
+        """
+        Fetch latest deals/trades for symbol with Redis caching.
+        
+        Used for tick/trade price and volume analysis, VWAP calculation.
+        
+        Args:
+            symbol: Trading pair symbol
+            limit: Number of deals to fetch
+            use_cache: Whether to use cache (default: True)
+            
+        Returns:
+            List of trade records
+            
+        Raises:
+            ccxt.NetworkError: Network connection failed
+            ccxt.ExchangeError: Exchange API error
+        """
+        cache_key = self._get_cache_key("deals", symbol, limit)
+        
+        # Try cache first if enabled
+        if use_cache and self._cache and self._cache.enabled:
+            cached_data = self._cache.get(cache_key)
+            if cached_data:
+                return cached_data
+        
+        # Fetch from API
+        data = self.exchange.fetch_trades(symbol, limit=limit)
+        
+        # Store in cache (10 second TTL for deals data)
+        if self._cache and self._cache.enabled:
+            self._cache.set(cache_key, data, ttl=10)
+        
+        return data
+    
+    def fetch_order_book(
+        self,
+        symbol: str,
+        limit: int = 20,
+        use_cache: bool = True
+    ) -> Dict[str, Any]:
+        """
+        Fetch market depth (order book) with Redis caching.
+        
+        Used for liquidity estimation, support/resistance, VWAP order models.
+        
+        Args:
+            symbol: Trading pair symbol
+            limit: Depth limit (number of price levels)
+            use_cache: Whether to use cache (default: True)
+            
+        Returns:
+            Order book data with bids and asks
+            
+        Raises:
+            ccxt.NetworkError: Network connection failed
+            ccxt.ExchangeError: Exchange API error
+        """
+        cache_key = self._get_cache_key("orderbook", symbol, limit)
+        
+        # Try cache first if enabled
+        if use_cache and self._cache and self._cache.enabled:
+            cached_data = self._cache.get(cache_key)
+            if cached_data:
+                return cached_data
+        
+        # Fetch from API
+        data = self.exchange.fetch_order_book(symbol, limit=limit)
+        
+        # Store in cache (5 second TTL for order book data)
+        if self._cache and self._cache.enabled:
+            self._cache.set(cache_key, data, ttl=5)
+        
+        return data
+    
+    def get_cache_stats(self) -> dict:
+        """
+        Get Redis cache statistics.
+        
+        Returns:
+            Dictionary with cache stats
+        """
+        if self._cache:
+            return self._cache.get_stats()
+        return {"enabled": False, "status": "not configured"}

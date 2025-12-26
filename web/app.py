@@ -32,7 +32,7 @@ templates = Jinja2Templates(directory="web/templates")
 # Initialize components
 config = AppConfig.load()
 state_manager = StateManager()
-exchange_client = ExchangeClient(config.exchange)
+exchange_client = ExchangeClient(config.exchange, cache_config=config.cache)
 strategy = EMAAccumulationStrategy()
 
 
@@ -406,6 +406,62 @@ def get_performance_metrics() -> JSONResponse:
                 }
         
         return JSONResponse(metrics)
+    except Exception as e:
+        return JSONResponse(
+            {"error": str(e)},
+            status_code=500
+        )
+
+
+@app.get("/api/market/deals")
+def get_latest_deals() -> JSONResponse:
+    """Get latest deals/trades data from MEXC (cached in Redis)."""
+    try:
+        deals = exchange_client.fetch_deals(
+            config.trading.symbol,
+            limit=20
+        )
+        return JSONResponse({
+            "symbol": config.trading.symbol,
+            "count": len(deals),
+            "deals": deals[:10],  # Return first 10 for API response
+            "cached": True  # Always try cache first
+        })
+    except Exception as e:
+        return JSONResponse(
+            {"error": str(e)},
+            status_code=500
+        )
+
+
+@app.get("/api/market/depth")
+def get_market_depth() -> JSONResponse:
+    """Get market depth/order book data from MEXC (cached in Redis)."""
+    try:
+        depth = exchange_client.fetch_order_book(
+            config.trading.symbol,
+            limit=10
+        )
+        return JSONResponse({
+            "symbol": config.trading.symbol,
+            "bids": depth.get("bids", [])[:10],
+            "asks": depth.get("asks", [])[:10],
+            "timestamp": depth.get("timestamp"),
+            "cached": True  # Always try cache first
+        })
+    except Exception as e:
+        return JSONResponse(
+            {"error": str(e)},
+            status_code=500
+        )
+
+
+@app.get("/api/cache/stats")
+def get_cache_stats() -> JSONResponse:
+    """Get Redis cache statistics."""
+    try:
+        stats = exchange_client.get_cache_stats()
+        return JSONResponse(stats)
     except Exception as e:
         return JSONResponse(
             {"error": str(e)},
