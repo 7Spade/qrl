@@ -338,6 +338,61 @@ def get_market_data() -> JSONResponse:
         )
 
 
+@app.get("/api/market/chart-data")
+def get_chart_data() -> JSONResponse:
+    """
+    Get historical price and indicator data for chart visualization.
+    Data is automatically cached in Redis per MEXC API integration.
+    
+    Returns:
+        JSONResponse: Chart data with timestamps, prices, and EMA values
+    """
+    try:
+        # Fetch OHLCV data (automatically cached in Redis with 60s TTL)
+        ohlcv = exchange_client.fetch_ohlcv(
+            config.trading.symbol,
+            config.trading.timeframe,
+            limit=100  # Last 100 candles for chart
+        )
+        
+        if not ohlcv or len(ohlcv) == 0:
+            return JSONResponse({"error": "No data available"}, status_code=404)
+        
+        # Calculate EMA for each data point
+        import pandas as pd
+        df = pd.DataFrame(ohlcv, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
+        
+        # Calculate EMAs
+        df['ema20'] = df['close'].ewm(span=20, adjust=False).mean()
+        df['ema60'] = df['close'].ewm(span=60, adjust=False).mean()
+        
+        # Prepare chart data
+        chart_data = {
+            "labels": [
+                datetime.fromtimestamp(ts/1000).strftime('%m-%d %H:%M')
+                for ts in df['timestamp'].tolist()
+            ],
+            "prices": df['close'].tolist(),
+            "ema20": df['ema20'].tolist(),
+            "ema60": df['ema60'].tolist(),
+            "volumes": df['volume'].tolist(),
+            "metadata": {
+                "symbol": config.trading.symbol,
+                "timeframe": config.trading.timeframe,
+                "data_points": len(df),
+                "timestamp": datetime.utcnow().isoformat(),
+            }
+        }
+        
+        return JSONResponse(chart_data)
+    except Exception as e:
+        logger.error(f"Error fetching chart data: {e}")
+        return JSONResponse(
+            {"error": str(e)},
+            status_code=500
+        )
+
+
 @app.get("/api/performance")
 def get_performance_metrics() -> JSONResponse:
     """

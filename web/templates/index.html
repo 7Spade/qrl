@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>QRL Trading Bot - Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <style>
     * {
       margin: 0;
@@ -20,15 +21,56 @@
     }
     
     .container {
-      max-width: 1200px;
+      max-width: 1400px;
       margin: 0 auto;
     }
     
     h1 {
       text-align: center;
-      margin-bottom: 30px;
+      margin-bottom: 20px;
       color: #00ff41;
       text-shadow: 0 0 10px #00ff41;
+    }
+    
+    .nav-links {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    
+    .nav-links a {
+      color: #00d4ff;
+      text-decoration: none;
+      margin: 0 15px;
+      padding: 8px 16px;
+      border: 1px solid #00d4ff;
+      border-radius: 4px;
+      transition: all 0.3s;
+    }
+    
+    .nav-links a:hover {
+      background: #00d4ff;
+      color: #0a0e27;
+    }
+    
+    .chart-container {
+      background: #1a1f3a;
+      border: 2px solid #00ff41;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 0 20px rgba(0, 255, 65, 0.2);
+    }
+    
+    .chart-container h2 {
+      color: #00d4ff;
+      margin-bottom: 15px;
+      font-size: 1.2em;
+      border-bottom: 1px solid #00ff41;
+      padding-bottom: 10px;
+    }
+    
+    #priceChart {
+      max-height: 400px;
     }
     
     .grid {
@@ -74,6 +116,14 @@
       font-weight: bold;
     }
     
+    .positive {
+      color: #00ff41;
+    }
+    
+    .negative {
+      color: #ff4444;
+    }
+    
     .status-connected {
       color: #00ff41;
     }
@@ -111,153 +161,409 @@
     .footer {
       text-align: center;
       margin-top: 30px;
+      padding-top: 20px;
+      border-top: 1px solid #00ff41;
       color: #00d4ff;
       font-size: 0.9em;
     }
     
-    @media (max-width: 768px) {
-      .grid {
-        grid-template-columns: 1fr;
-      }
+    .loading {
+      text-align: center;
+      color: #00d4ff;
+      font-size: 1.1em;
+      padding: 20px;
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>📊 QRL Trading Bot Dashboard</h1>
+    <h1>📊 QRL Trading Bot - Dashboard</h1>
+    
+    <div class="nav-links">
+      <a href="/">Dashboard</a>
+      <a href="/history">Trade History</a>
+      <a href="/health" target="_blank">Health Check</a>
+    </div>
+    
+    <!-- Price Chart -->
+    <div class="chart-container">
+      <h2>📈 Price & EMA Indicators (Redis-Cached Data)</h2>
+      <canvas id="priceChart"></canvas>
+      <div class="loading" id="chartLoading">Loading chart data from Redis...</div>
+    </div>
     
     <div class="grid">
       <!-- Market Data Card -->
       <div class="card">
-        <h2>💹 Market Data</h2>
-        <div class="data-row">
-          <span class="label">Symbol:</span>
-          <span class="value">{{ symbol }}</span>
-        </div>
-        <div class="data-row">
-          <span class="label">Price:</span>
-          <span class="value">{{ price }}</span>
-        </div>
-        <div class="data-row">
-          <span class="label">24H Change:</span>
-          <span class="value" style="color: {% if change_24h_raw > 0 %}#00ff41{% elif change_24h_raw < 0 %}#ff4444{% else %}#00d4ff{% endif %}">{{ change_24h }}</span>
-        </div>
-        <div class="data-row">
-          <span class="label">EMA20:</span>
-          <span class="value">{{ ema20 }}</span>
-        </div>
-        <div class="data-row">
-          <span class="label">EMA60:</span>
-          <span class="value">{{ ema60 }}</span>
+        <h2>📈 Market Data</h2>
+        <div id="market-data">
+          <div class="loading">Loading...</div>
         </div>
       </div>
       
       <!-- Position Card -->
       <div class="card">
-        <h2>💰 Position Status</h2>
-        <div class="data-row">
-          <span class="label">Current Position:</span>
-          <span class="value">${{ "%.2f"|format(position) }} USDT</span>
-        </div>
-        <div class="data-row">
-          <span class="label">Max Position:</span>
-          <span class="value">${{ "%.2f"|format(max_position) }} USDT</span>
-        </div>
-        <div class="data-row">
-          <span class="label">Available:</span>
-          <span class="value">${{ "%.2f"|format(available) }} USDT</span>
-        </div>
-        <div class="data-row">
-          <span class="label">Utilization:</span>
-          <span class="value">{{ "%.1f"|format(utilization) }}%</span>
-        </div>
-        <div class="progress-bar">
-          <div class="progress-fill" style="width: {{ utilization }}%">
-            {{ "%.0f"|format(utilization) }}%
-          </div>
+        <h2>💼 Position</h2>
+        <div id="position-data">
+          <div class="loading">Loading...</div>
         </div>
       </div>
       
-      <!-- Strategy Status Card -->
+      <!-- Strategy Card -->
       <div class="card">
-        <h2>📈 Strategy Status</h2>
-        <div class="data-row">
-          <span class="label">Strategy:</span>
-          <span class="value">EMA20/60 Accumulation</span>
-        </div>
-        <div class="data-row">
-          <span class="label">Status:</span>
-          <span class="value">{{ strategy_status }}</span>
-        </div>
-        <div class="data-row">
-          <span class="label">Details:</span>
-          <span class="value" style="font-size: 0.9em;">{{ strategy_detail }}</span>
-        </div>
-        <div class="data-row">
-          <span class="label">Buy Condition:</span>
-          <span class="value" style="font-size: 0.85em;">{{ buy_condition }}</span>
-        </div>
-        <div class="data-row">
-          <span class="label">Order Size:</span>
-          <span class="value">$50 USDT</span>
-        </div>
-        <div class="data-row">
-          <span class="label">Price Offset:</span>
-          <span class="value">-2%</span>
-        </div>
-        <div class="data-row">
-          <span class="label">Last Trade:</span>
-          <span class="value" style="font-size: 0.9em;">{{ last_trade }}</span>
+        <h2>📊 Strategy Status</h2>
+        <div id="strategy-data">
+          <div class="loading">Loading...</div>
         </div>
       </div>
       
-      <!-- System Status Card -->
+      <!-- System Health Card -->
       <div class="card">
         <h2>🔧 System Status</h2>
-        <div class="data-row">
-          <span class="label">API Connection:</span>
-          <span class="value {% if 'Connected' in api_status %}status-connected{% else %}status-disconnected{% endif %}">
-            {% if 'Connected' in api_status %}● {{ api_status }}{% else %}⚠ {{ api_status }}{% endif %}
-          </span>
-        </div>
-        <div class="data-row">
-          <span class="label">Data Delay:</span>
-          <span class="value">{{ data_delay }}</span>
-        </div>
-        <div class="data-row">
-          <span class="label">Cache:</span>
-          <span class="value">{% if config.cache.redis_enabled %}Redis Enabled{% else %}Disabled{% endif %}</span>
-        </div>
-        <div class="data-row">
-          <span class="label">Last Update:</span>
-          <span class="value">{{ last_update[:19] }} UTC</span>
-        </div>
-        <div class="data-row">
-          <span class="label">Version:</span>
-          <span class="value">v2.0.0</span>
+        <div id="system-data">
+          <div class="loading">Loading...</div>
         </div>
       </div>
     </div>
     
     <div class="footer">
-      <p>🤖 QRL Trading Bot - Automated EMA Accumulation Strategy</p>
-      <p style="font-size: 0.8em; margin-top: 10px;">
-        <a href="/history" style="color: #00d4ff; text-decoration: none;">📊 View Trade History</a> |
-        Auto-refresh: <span id="countdown">60</span>s
-      </p>
+      <p>Auto-refresh every 60 seconds | Data cached in Redis | UTC Time: <span id="current-time"></span></p>
+      <p>QRL Trading Bot v2.0 - Production Ready</p>
     </div>
   </div>
-  
+
   <script>
-    // Auto-refresh countdown
-    let countdown = 60;
-    setInterval(() => {
-      countdown--;
-      document.getElementById('countdown').textContent = countdown;
-      if (countdown <= 0) {
-        location.reload();
+    let priceChart = null;
+    
+    // Initialize chart
+    function initializeChart() {
+      const ctx = document.getElementById('priceChart').getContext('2d');
+      priceChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: [],
+          datasets: [
+            {
+              label: 'Price (QRL/USDT)',
+              data: [],
+              borderColor: '#00ff41',
+              backgroundColor: 'rgba(0, 255, 65, 0.1)',
+              borderWidth: 2,
+              tension: 0.4,
+              fill: true,
+            },
+            {
+              label: 'EMA 20',
+              data: [],
+              borderColor: '#00d4ff',
+              borderWidth: 2,
+              borderDash: [5, 5],
+              tension: 0.4,
+              fill: false,
+            },
+            {
+              label: 'EMA 60',
+              data: [],
+              borderColor: '#ff00ff',
+              borderWidth: 2,
+              borderDash: [5, 5],
+              tension: 0.4,
+              fill: false,
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: true,
+          aspectRatio: 2.5,
+          plugins: {
+            legend: {
+              labels: {
+                color: '#00ff41',
+                font: {
+                  family: "'Monaco', 'Courier New', monospace",
+                  size: 12
+                }
+              }
+            },
+            tooltip: {
+              backgroundColor: '#1a1f3a',
+              titleColor: '#00d4ff',
+              bodyColor: '#00ff41',
+              borderColor: '#00ff41',
+              borderWidth: 1
+            }
+          },
+          scales: {
+            x: {
+              ticks: {
+                color: '#00d4ff',
+                maxRotation: 45,
+                minRotation: 45
+              },
+              grid: {
+                color: '#2a3f5f'
+              }
+            },
+            y: {
+              ticks: {
+                color: '#00d4ff'
+              },
+              grid: {
+                color: '#2a3f5f'
+              }
+            }
+          }
+        }
+      });
+    }
+    
+    // Update chart with new data
+    function updateChart(chartData) {
+      if (!priceChart) {
+        initializeChart();
       }
-    }, 1000);
+      
+      // Update chart data
+      priceChart.data.labels = chartData.labels;
+      priceChart.data.datasets[0].data = chartData.prices;
+      priceChart.data.datasets[1].data = chartData.ema20;
+      priceChart.data.datasets[2].data = chartData.ema60;
+      priceChart.update();
+      
+      // Hide loading message
+      document.getElementById('chartLoading').style.display = 'none';
+    }
+    
+    // Fetch chart data from Redis-cached API
+    async function fetchChartData() {
+      try {
+        const response = await fetch('/api/market/chart-data');
+        const data = await response.json();
+        
+        if (data.error) {
+          console.error('Chart data error:', data.error);
+          document.getElementById('chartLoading').innerHTML = 
+            '<span class="negative">Error loading chart data</span>';
+          return;
+        }
+        
+        updateChart(data);
+      } catch (error) {
+        console.error('Error fetching chart data:', error);
+        document.getElementById('chartLoading').innerHTML = 
+          '<span class="negative">Failed to load chart</span>';
+      }
+    }
+    
+    // Fetch market data
+    async function fetchMarketData() {
+      try {
+        const response = await fetch('/api/market');
+        const data = await response.json();
+        
+        if (data.error) {
+          document.getElementById('market-data').innerHTML = 
+            `<div class="data-row"><span class="negative">Error: ${data.error}</span></div>`;
+          return;
+        }
+        
+        const changeClass = data.change_24h >= 0 ? 'positive' : 'negative';
+        const changeSymbol = data.change_24h >= 0 ? '+' : '';
+        
+        document.getElementById('market-data').innerHTML = `
+          <div class="data-row">
+            <span class="label">Symbol:</span>
+            <span class="value">${data.symbol}</span>
+          </div>
+          <div class="data-row">
+            <span class="label">Price:</span>
+            <span class="value">$${data.price.toFixed(6)}</span>
+          </div>
+          <div class="data-row">
+            <span class="label">24H Change:</span>
+            <span class="value ${changeClass}">${changeSymbol}${data.change_24h.toFixed(2)}%</span>
+          </div>
+          <div class="data-row">
+            <span class="label">EMA 20:</span>
+            <span class="value">$${data.ema20.toFixed(6)}</span>
+          </div>
+          <div class="data-row">
+            <span class="label">EMA 60:</span>
+            <span class="value">$${data.ema60.toFixed(6)}</span>
+          </div>
+          <div class="data-row">
+            <span class="label">Data Delay:</span>
+            <span class="value status-connected">< 1s (Redis)</span>
+          </div>
+        `;
+      } catch (error) {
+        console.error('Error fetching market data:', error);
+      }
+    }
+    
+    // Fetch position data
+    async function fetchPositionData() {
+      try {
+        const response = await fetch('/api/statistics');
+        const data = await response.json();
+        
+        if (data.error) {
+          document.getElementById('position-data').innerHTML = 
+            `<div class="data-row"><span class="negative">Error: ${data.error}</span></div>`;
+          return;
+        }
+        
+        const utilization = data.position_utilization_pct || 0;
+        
+        document.getElementById('position-data').innerHTML = `
+          <div class="data-row">
+            <span class="label">Current Position:</span>
+            <span class="value">$${data.current_position.toFixed(2)}</span>
+          </div>
+          <div class="data-row">
+            <span class="label">Max Position:</span>
+            <span class="value">$${data.max_position_usdt.toFixed(2)}</span>
+          </div>
+          <div class="data-row">
+            <span class="label">Available:</span>
+            <span class="value">$${data.available_capacity.toFixed(2)}</span>
+          </div>
+          <div class="data-row">
+            <span class="label">Utilization:</span>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill" style="width: ${utilization}%">${utilization.toFixed(1)}%</div>
+          </div>
+        `;
+      } catch (error) {
+        console.error('Error fetching position data:', error);
+      }
+    }
+    
+    // Fetch strategy status
+    async function fetchStrategyData() {
+      try {
+        const marketResponse = await fetch('/api/market');
+        const marketData = await marketResponse.json();
+        
+        const statsResponse = await fetch('/api/statistics');
+        const statsData = await statsResponse.json();
+        
+        if (marketData.error || statsData.error) {
+          document.getElementById('strategy-data').innerHTML = 
+            '<div class="data-row"><span class="negative">Error loading strategy data</span></div>';
+          return;
+        }
+        
+        const buyThreshold = marketData.ema60 * 1.02;
+        let statusText = '⏸️ Waiting';
+        let detailText = 'Analyzing market conditions...';
+        
+        if (marketData.buy_signal) {
+          statusText = '✅ Ready to Buy';
+          detailText = 'Conditions met - Ready to execute';
+        } else if (marketData.price > buyThreshold) {
+          if (marketData.ema20 < marketData.ema60) {
+            detailText = 'Price too high & Momentum weak';
+          } else {
+            detailText = 'Price above threshold';
+          }
+        } else if (marketData.ema20 < marketData.ema60) {
+          detailText = 'Weak momentum (EMA20 < EMA60)';
+        }
+        
+        document.getElementById('strategy-data').innerHTML = `
+          <div class="data-row">
+            <span class="label">Status:</span>
+            <span class="value ${marketData.buy_signal ? 'positive' : 'status-warning'}">${statusText}</span>
+          </div>
+          <div class="data-row">
+            <span class="label">Details:</span>
+            <span class="value">${detailText}</span>
+          </div>
+          <div class="data-row">
+            <span class="label">Buy Condition:</span>
+            <span class="value">Price ≤ $${buyThreshold.toFixed(6)}</span>
+          </div>
+          <div class="data-row">
+            <span class="label">Last Trade:</span>
+            <span class="value">${statsData.last_trade_time || 'None'}</span>
+          </div>
+        `;
+      } catch (error) {
+        console.error('Error fetching strategy data:', error);
+      }
+    }
+    
+    // Fetch system status
+    async function fetchSystemData() {
+      try {
+        const healthResponse = await fetch('/health');
+        const healthData = await healthResponse.json();
+        
+        const cacheResponse = await fetch('/api/cache/stats');
+        const cacheData = await cacheResponse.json();
+        
+        const apiStatus = healthData.status === 'healthy' ? '● Connected' : '⚠ Error';
+        const apiStatusClass = healthData.status === 'healthy' ? 'status-connected' : 'status-disconnected';
+        
+        const cacheStatus = cacheData.enabled ? 
+          (cacheData.status === 'connected' ? '✅ Connected' : '⚠ Degraded') : 
+          '❌ Disabled';
+        const cacheStatusClass = cacheData.enabled && cacheData.status === 'connected' ? 
+          'status-connected' : 'status-warning';
+        
+        document.getElementById('system-data').innerHTML = `
+          <div class="data-row">
+            <span class="label">API Status:</span>
+            <span class="value ${apiStatusClass}">${apiStatus}</span>
+          </div>
+          <div class="data-row">
+            <span class="label">Redis Cache:</span>
+            <span class="value ${cacheStatusClass}">${cacheStatus}</span>
+          </div>
+          <div class="data-row">
+            <span class="label">Data Delay:</span>
+            <span class="value status-connected">${cacheData.enabled ? '< 100ms' : '200-500ms'}</span>
+          </div>
+          <div class="data-row">
+            <span class="label">Cache Keys:</span>
+            <span class="value">${cacheData.cache_keys || 0}</span>
+          </div>
+        `;
+      } catch (error) {
+        console.error('Error fetching system data:', error);
+      }
+    }
+    
+    // Update current time
+    function updateTime() {
+      const now = new Date();
+      document.getElementById('current-time').textContent = now.toISOString().replace('T', ' ').substring(0, 19);
+    }
+    
+    // Refresh all data
+    function refreshAllData() {
+      fetchChartData();
+      fetchMarketData();
+      fetchPositionData();
+      fetchStrategyData();
+      fetchSystemData();
+      updateTime();
+    }
+    
+    // Initialize on load
+    document.addEventListener('DOMContentLoaded', function() {
+      initializeChart();
+      refreshAllData();
+      
+      // Auto-refresh every 60 seconds
+      setInterval(refreshAllData, 60000);
+      
+      // Update time every second
+      setInterval(updateTime, 1000);
+    });
   </script>
 </body>
 </html>
