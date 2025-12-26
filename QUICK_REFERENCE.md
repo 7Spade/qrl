@@ -27,7 +27,7 @@ MEXC_API_SECRET=your_secret_key_here
 
 ## ☁️ Cloud Run Deployment
 
-### Public Access (Development)
+### Public Access (Default)
 
 ```bash
 gcloud builds submit --config cloudbuild.yaml
@@ -35,14 +35,16 @@ gcloud builds submit --config cloudbuild.yaml
 
 Access at: `https://your-service-url.run.app`
 
-### IAM Authentication (Production)
+### Switch to IAM Authentication (After Deployment)
 
 ```bash
-gcloud builds submit --config cloudbuild.yaml --substitutions _USE_IAM_AUTH=true
-```
+# Remove public access
+gcloud run services remove-iam-policy-binding qrl-bot \
+  --region=asia-east1 \
+  --member="allUsers" \
+  --role="roles/run.invoker"
 
-Grant yourself access:
-```bash
+# Grant yourself access
 gcloud run services add-iam-policy-binding qrl-bot \
   --region=asia-east1 \
   --member="user:your-email@gmail.com" \
@@ -209,15 +211,19 @@ gcloud run services logs read qrl-bot --region=asia-east1 \
 
 4. **Deploy to Cloud**
    ```bash
-   # Public access (dev)
+   # Deploy with public access (default)
    gcloud builds submit --config cloudbuild.yaml
-   
-   # Or IAM auth (prod)
-   gcloud builds submit --config cloudbuild.yaml --substitutions _USE_IAM_AUTH=true
    ```
 
-5. **Grant Access (if using IAM)**
+5. **Optional: Switch to IAM Authentication**
    ```bash
+   # Remove public access
+   gcloud run services remove-iam-policy-binding qrl-bot \
+     --region=asia-east1 \
+     --member="allUsers" \
+     --role="roles/run.invoker"
+   
+   # Grant yourself access
    gcloud run services add-iam-policy-binding qrl-bot \
      --region=asia-east1 \
      --member="user:your-email@gmail.com" \
