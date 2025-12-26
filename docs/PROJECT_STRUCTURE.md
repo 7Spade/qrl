@@ -238,7 +238,7 @@ logger.strategy_signal("EMA", "BUY", {"price": 0.45})
 
 **Usage**:
 ```bash
-uvicorn web.app_new:app --reload --port 8000
+python web/app.py
 ```
 
 ### `tests/` - Test Suite
@@ -311,7 +311,7 @@ Defines project metadata, dependencies, and tool configuration:
 
 Python package dependencies:
 - Core: ccxt, pandas, numpy, ta, pydantic, SQLAlchemy
-- Web: fastapi, uvicorn, jinja2
+- Web: dash, dash-bootstrap-components, plotly
 - Dev: pytest, pytest-cov, flake8, black, mypy
 
 ### `.env`
@@ -338,7 +338,7 @@ These files are kept for backward compatibility:
 - `state.py`: Old state management
 - `web/app.py`: Original dashboard
 
-**Recommendation**: Use v2.0 files (`main_new.py`, `src/`, `web/app_new.py`) for new development.
+**Recommendation**: Use v2.0 files (`main_new.py`, `src/`, `web/dash_app.py`) for new development.
 
 ## Best Practices
 
@@ -407,7 +407,7 @@ def analyze(self, ohlcv: List[List[Any]]) -> StrategySignal:
 
 ### Adding API Endpoint
 
-1. Add route to `web/app_new.py`
+1. Add route to `web/dash_app.py`
 2. Use existing components (StateManager, ExchangeClient)
 3. Return JSONResponse
 4. Test manually

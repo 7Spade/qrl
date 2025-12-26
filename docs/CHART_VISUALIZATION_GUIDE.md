@@ -59,7 +59,7 @@ Fetches historical price and indicator data for chart visualization.
 
 1. **Start the dashboard**:
    ```bash
-   uvicorn web.app:app --reload
+   python web/dash_app.py
    ```
 
 2. **Open in browser**:

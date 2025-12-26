@@ -40,9 +40,9 @@ python main.py
 
 ```bash
 # Start the dashboard
-uvicorn web.app:app --reload --port 8000
+python web/app.py
 
-# Open browser to http://localhost:8000
+# Open browser to http://localhost:8080
 ```
 
 ---
@@ -67,7 +67,7 @@ python main.py
 ### Start the Dashboard
 
 ```bash
-uvicorn web.app:app --reload --port 8000
+python web/app.py
 ```
 
 ### Run Tests
@@ -190,18 +190,18 @@ python main.py  # Recreates schema
 ### Access the Dashboard
 
 ```bash
-uvicorn web.app:app --reload --port 8000
-# Visit http://localhost:8000
+python web/app.py
+# Visit http://localhost:8080
 ```
 
-### Available Endpoints
+### Available Features
 
-- `GET /` - Main dashboard
-- `GET /health` - Health check
-- `GET /api/trades` - Trade history (JSON)
-- `GET /api/statistics` - Performance stats (JSON)
-- `GET /api/logs` - System logs (JSON)
-- `GET /api/market` - Market data with indicators (JSON)
+- Real-time market data with interactive charts
+- Position status and utilization tracking
+- Technical indicators (Williams %R, RSI, MACD)
+- Trade history visualization
+- System health monitoring
+- Auto-refresh every 60 seconds
 
 ---
 
@@ -241,7 +241,7 @@ Before running in production:
 - [ ] `.env` file configured with valid API keys
 - [ ] Database initialized: `python main.py` (runs once)
 - [ ] Tests passing: `pytest tests/`
-- [ ] Dashboard accessible: `uvicorn web.app:app --reload`
+- [ ] Dashboard accessible: `python web/app.py`
 - [ ] Logs directory created: `mkdir -p logs`
 
 ---
