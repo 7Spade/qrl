@@ -39,25 +39,37 @@ This directory contains the essential documentation for the QRL trading bot proj
 
 ## Feature-Specific Guides
 
-6. **[REDIS_SETUP.md](REDIS_SETUP.md)** - Redis configuration
+6. **[MEXC_API_GUIDE.md](MEXC_API_GUIDE.md)** - Complete MEXC API integration guide
+   - API endpoints documentation
+   - Authentication and rate limiting
+   - Optimization strategies
+   - Best practices and troubleshooting
+
+7. **[MEXC_OPTIMIZATION_RECOMMENDATIONS.md](MEXC_OPTIMIZATION_RECOMMENDATIONS.md)** - MEXC API optimization analysis
+   - Performance metrics and analysis
+   - Cache strategy optimization
+   - Rate limit management
+   - Security recommendations
+
+8. **[REDIS_SETUP.md](REDIS_SETUP.md)** - Redis configuration
    - Redis installation
    - Environment variables
    - Caching configuration
 
-7. **[REDIS_CACHING_GUIDE.md](REDIS_CACHING_GUIDE.md)** - MEXC API caching integration
+9. **[REDIS_CACHING_GUIDE.md](REDIS_CACHING_GUIDE.md)** - MEXC API caching integration
    - Cache-aside pattern implementation
    - TTL configuration per data type
    - Performance optimization
 
-8. **[CHART_VISUALIZATION_GUIDE.md](CHART_VISUALIZATION_GUIDE.md)** - Chart.js integration
-   - Interactive chart setup
-   - Multi-timeframe selector
-   - Chart data API usage
+10. **[CHART_VISUALIZATION_GUIDE.md](CHART_VISUALIZATION_GUIDE.md)** - Chart.js integration
+    - Interactive chart setup
+    - Multi-timeframe selector
+    - Chart data API usage
 
-9. **[TECHNICAL_INDICATORS_GUIDE.md](TECHNICAL_INDICATORS_GUIDE.md)** - Technical indicators
-   - Williams %R, MA, MACD, RSI, Volume, EMA
-   - Calculation methodologies
-   - Usage in trading strategies
+11. **[TECHNICAL_INDICATORS_GUIDE.md](TECHNICAL_INDICATORS_GUIDE.md)** - Technical indicators
+    - Williams %R, MA, MACD, RSI, Volume, EMA
+    - Calculation methodologies
+    - Usage in trading strategies
 
 ## Quick Links
 
@@ -70,16 +82,18 @@ This directory contains the essential documentation for the QRL trading bot proj
 
 ```
 docs/
-├── 交易機器人完整規範指南.md    # Core specification
-├── 交易機器人頁面指南.md        # UI specification
-├── ARCHITECTURE.md            # System architecture
-├── PROJECT_STRUCTURE.md       # Module reference
-├── QUICK_START.md            # Getting started
-├── REDIS_SETUP.md            # Redis config
-├── REDIS_CACHING_GUIDE.md    # Caching guide
+├── 交易機器人完整規範指南.md       # Core specification
+├── 交易機器人頁面指南.md           # UI specification
+├── ARCHITECTURE.md               # System architecture
+├── PROJECT_STRUCTURE.md          # Module reference
+├── QUICK_START.md               # Getting started
+├── MEXC_API_GUIDE.md            # MEXC API integration
+├── MEXC_OPTIMIZATION_RECOMMENDATIONS.md # MEXC optimization
+├── REDIS_SETUP.md               # Redis config
+├── REDIS_CACHING_GUIDE.md       # Caching guide
 ├── CHART_VISUALIZATION_GUIDE.md # Charts guide
 ├── TECHNICAL_INDICATORS_GUIDE.md # Indicators
-└── README.md                 # This file
+└── README.md                    # This file
 ```
 
 ## Support
