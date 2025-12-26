@@ -46,15 +46,21 @@ def retry_on_network_error(max_attempts: int = 3, delay: float = 1.0):
 
 
 class ExchangeClient:
-    """MEXC exchange client wrapper with Redis caching and retry support."""
+    """MEXC exchange client wrapper with Redis caching and persistent storage."""
     
-    def __init__(self, config: ExchangeConfig, cache_config: CacheConfig):
+    def __init__(
+        self,
+        config: ExchangeConfig,
+        cache_config: CacheConfig,
+        state_manager: Optional['StateManager'] = None
+    ):
         """
         Initialize exchange client.
         
         Args:
             config: Exchange configuration
             cache_config: Cache configuration (REQUIRED)
+            state_manager: Optional StateManager for persistent OHLCV storage
             
         Raises:
             RuntimeError: If cache initialization fails
@@ -62,6 +68,7 @@ class ExchangeClient:
         self.config = config
         self.cache_config = cache_config
         self._exchange: Optional[ccxt.Exchange] = None
+        self._state_manager = state_manager
         
         # Initialize cache - REQUIRED
         self._cache = CacheClient(
