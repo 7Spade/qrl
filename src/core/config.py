@@ -101,6 +101,11 @@ class CacheConfig(BaseModel):
         gt=0,
         description="Cache TTL for order book data (fast-changing)",
     )
+    cache_ttl_balance: int = Field(
+        default=10,
+        gt=0,
+        description="Cache TTL for balance data (moderately changing)",
+    )
     namespace: str = Field(
         default="qrl",
         description="Redis key namespace for environment separation",
@@ -128,6 +133,9 @@ class CacheConfig(BaseModel):
             cache_ttl_deals=int(os.getenv("REDIS_CACHE_TTL_DEALS", "10")),
             cache_ttl_orderbook=int(
                 os.getenv("REDIS_CACHE_TTL_ORDERBOOK", "5")
+            ),
+            cache_ttl_balance=int(
+                os.getenv("REDIS_CACHE_TTL_BALANCE", "10")
             ),
             namespace=os.getenv("REDIS_NAMESPACE", "qrl"),
         )

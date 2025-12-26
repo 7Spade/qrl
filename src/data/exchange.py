@@ -5,12 +5,15 @@ Provides abstraction layer for exchange API interactions with
 error handling, rate limiting, automatic retry, and Redis caching.
 """
 
-from typing import Dict, Any, List, Optional, Callable
+from typing import Dict, Any, List, Optional, Callable, TYPE_CHECKING
 import ccxt
 import time
 from functools import wraps
 from src.core.config import ExchangeConfig, CacheConfig
 from src.data.cache import CacheClient
+
+if TYPE_CHECKING:
+    from src.data.state import StateManager
 
 
 def retry_on_network_error(max_attempts: int = 3, delay: float = 1.0):
@@ -33,16 +36,22 @@ def retry_on_network_error(max_attempts: int = 3, delay: float = 1.0):
                     last_exception = e
                     if attempt < max_attempts - 1:
                         wait_time = delay * (2**attempt)
-                        print(
-                            f"⚠️ Network error (attempt {attempt + 1}/{max_attempts}): {e}. Retrying in {wait_time}s..."
+                        msg = (
+                            f"⚠️ Network error (attempt {attempt + 1}/"
+                            f"{max_attempts}): {e}. "
+                            f"Retrying in {wait_time}s..."
                         )
+                        print(msg)
                         time.sleep(wait_time)
                     else:
-                        print(
-                            f"❌ Network error after {max_attempts} attempts: {e}"
+                        msg = (
+                            f"❌ Network error after {max_attempts} "
+                            f"attempts: {e}"
                         )
+                        print(msg)
                 except ccxt.ExchangeError as e:
-                    # Don't retry on exchange errors (invalid params, insufficient funds, etc.)
+                    # Don't retry on exchange errors
+                    # (invalid params, insufficient funds, etc.)
                     raise e
 
             # If we get here, all attempts failed
@@ -54,7 +63,9 @@ def retry_on_network_error(max_attempts: int = 3, delay: float = 1.0):
 
 
 class ExchangeClient:
-    """MEXC exchange client wrapper with Redis caching and persistent storage."""
+    """
+    MEXC exchange client wrapper with Redis caching and persistent storage.
+    """
 
     def __init__(
         self,
@@ -215,9 +226,12 @@ class ExchangeClient:
         return self.exchange.create_limit_buy_order(symbol, amount, price)
 
     @retry_on_network_error(max_attempts=3, delay=1.0)
-    def fetch_balance(self) -> Dict[str, Any]:
+    def fetch_balance(self, use_cache: bool = True) -> Dict[str, Any]:
         """
-        Fetch account balance with auto-retry.
+        Fetch account balance with Redis caching and auto-retry.
+
+        Args:
+            use_cache: Whether to use cache (default: True)
 
         Returns:
             Balance information
@@ -225,8 +239,25 @@ class ExchangeClient:
         Raises:
             ccxt.NetworkError: Network connection failed after retries
             ccxt.ExchangeError: Exchange API error
+            RuntimeError: If Redis operation fails
         """
-        return self.exchange.fetch_balance()
+        cache_key = self._get_cache_key("balance")
+
+        # Try cache first if enabled
+        if use_cache:
+            cached_data = self._cache.get(cache_key)
+            if cached_data:
+                return cached_data
+
+        # Fetch from API
+        data = self.exchange.fetch_balance()
+
+        # Store in cache with configured TTL for balance data
+        self._cache.set(
+            cache_key, data, ttl=self.cache_config.cache_ttl_balance
+        )
+
+        return data
 
     @retry_on_network_error(max_attempts=3, delay=1.0)
     def fetch_deals(
