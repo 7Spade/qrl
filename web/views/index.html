@@ -898,9 +898,22 @@
         const statsResponse = await fetch('/api/statistics');
         const statsData = await statsResponse.json();
         
-        if (marketData.error || statsData.error) {
+        // Handle errors with specific messages
+        if (marketData.error) {
+          const errorMsg = marketData.error.includes('OHLCV') || marketData.error.includes('empty') 
+            ? '⚠️ Waiting for market data... (Exchange may be initializing)'
+            : marketData.error.includes('not initialized')
+            ? '⚠️ System initializing... Please wait.'
+            : `⚠️ ${marketData.error}`;
+          
           document.getElementById('strategy-data').innerHTML = 
-            '<div class="data-row"><span class="negative">Error loading strategy data</span></div>';
+            `<div class="data-row"><span class="status-warning">${errorMsg}</span></div>`;
+          return;
+        }
+        
+        if (statsData.error) {
+          document.getElementById('strategy-data').innerHTML = 
+            `<div class="data-row"><span class="status-warning">⚠️ ${statsData.error}</span></div>`;
           return;
         }
         
@@ -953,9 +966,15 @@
         const cacheResponse = await fetch('/api/cache/stats');
         const cacheData = await cacheResponse.json();
         
+        // Health check status
+        const healthStatus = healthData.status === 'healthy' ? '✅ Healthy' : '❌ Unhealthy';
+        const healthStatusClass = healthData.status === 'healthy' ? 'status-connected' : 'status-disconnected';
+        
+        // API connection status
         const apiStatus = healthData.status === 'healthy' ? '● Connected' : '⚠ Error';
         const apiStatusClass = healthData.status === 'healthy' ? 'status-connected' : 'status-disconnected';
         
+        // Redis cache status
         const cacheStatus = cacheData.enabled ? 
           (cacheData.status === 'connected' ? '✅ Connected' : '⚠ Degraded') : 
           '❌ Disabled';
@@ -963,6 +982,10 @@
           'status-connected' : 'status-warning';
         
         document.getElementById('system-data').innerHTML = `
+          <div class="data-row">
+            <span class="label">Health Check:</span>
+            <span class="value ${healthStatusClass}">${healthStatus}</span>
+          </div>
           <div class="data-row">
             <span class="label">API Status:</span>
             <span class="value ${apiStatusClass}">${apiStatus}</span>

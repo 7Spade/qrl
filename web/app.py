@@ -328,7 +328,7 @@ def get_market_data() -> JSONResponse:
     try:
         if not all([config, exchange_client, strategy]):
             return JSONResponse(
-                {"error": "System not initialized properly. Check configuration."},
+                {"error": "System not initialized properly. Check configuration and API connection."},
                 status_code=500
             )
         
@@ -341,8 +341,8 @@ def get_market_data() -> JSONResponse:
         
         if not ohlcv or len(ohlcv) == 0:
             return JSONResponse(
-                {"error": "OHLCV data is empty"},
-                status_code=500
+                {"error": "Market data unavailable. Exchange may be initializing or experiencing connectivity issues."},
+                status_code=200  # Changed to 200 to allow graceful handling
             )
         
         signal = strategy.analyze(ohlcv)
