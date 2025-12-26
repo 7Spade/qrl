@@ -1,42 +1,43 @@
 # Google Cloud Build configuration for QRL Trading Bot
 substitutions:
-  _IMAGE_TAG: "latest"  # 可改成其他版本號，例如 v1.0.0
-  _USE_IAM_AUTH: "false"  # Set to "true" to require IAM authentication (recommended for production)
+  _IMAGE_TAG: "latest"       # 可改成其他版本號，例如 v1.0.0
+  _USE_IAM_AUTH: "false"     # true = 需要 IAM 認證 (生產環境建議)
 
 steps:
-  # Build the container image
+  # 1️⃣ Build the Docker container
   - name: 'gcr.io/cloud-builders/docker'
     args: ['build', '-t', 'gcr.io/$PROJECT_ID/qrl-bot:${_IMAGE_TAG}', '.']
-  
-  # Push the container image to Container Registry
+
+  # 2️⃣ Push the Docker image to Container Registry
   - name: 'gcr.io/cloud-builders/docker'
     args: ['push', 'gcr.io/$PROJECT_ID/qrl-bot:${_IMAGE_TAG}']
-  
-  # Deploy to Cloud Run (conditional authentication based on _USE_IAM_AUTH)
+
+  # 3️⃣ Deploy to Cloud Run
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: bash
     args:
       - '-c'
       - |
+        set -e
         if [ "${_USE_IAM_AUTH}" = "true" ]; then
           echo "Deploying with IAM authentication (no public access)"
           gcloud run deploy qrl-bot \
             --image gcr.io/$PROJECT_ID/qrl-bot:${_IMAGE_TAG} \
             --region asia-east1 \
             --platform managed \
-            --no-allow-unauthenticated \
             --port 8080 \
-            --set-env-vars SYMBOL=QRL/USDT
+            --set-env-vars SYMBOL=QRL/USDT \
+            --no-allow-unauthenticated
         else
           echo "Deploying with public access (no authentication required)"
           gcloud run deploy qrl-bot \
             --image gcr.io/$PROJECT_ID/qrl-bot:${_IMAGE_TAG} \
             --region asia-east1 \
             --platform managed \
-            --allow-unauthenticated \
             --port 8080 \
-            --set-env-vars SYMBOL=QRL/USDT
-          
+            --set-env-vars SYMBOL=QRL/USDT \
+            --allow-unauthenticated
+
           # Grant allUsers the invoker role for public access
           echo "Setting IAM policy for public access..."
           gcloud run services add-iam-policy-binding qrl-bot \
