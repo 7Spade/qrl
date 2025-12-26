@@ -135,7 +135,7 @@ class CacheConfig(BaseModel):
             redis_url=redis_url,
             cache_ttl=int(os.getenv("REDIS_CACHE_TTL", "60")),
             cache_ttl_ticker=int(os.getenv("REDIS_CACHE_TTL_TICKER", "5")),
-            cache_ttl_ohlcv=int(os.getenv("REDIS_CACHE_TTL_OHLCV", "60")),
+            cache_ttl_ohlcv=int(os.getenv("REDIS_CACHE_TTL_OHLCV", "86400")),
             cache_ttl_deals=int(os.getenv("REDIS_CACHE_TTL_DEALS", "10")),
             cache_ttl_orderbook=int(os.getenv("REDIS_CACHE_TTL_ORDERBOOK", "5")),
             namespace=os.getenv("REDIS_NAMESPACE", "qrl"),
