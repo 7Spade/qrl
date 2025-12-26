@@ -4,15 +4,21 @@
 
 ### Added
 - Explicit IAM policy binding step in Cloud Build configuration to prevent 403 Forbidden errors
+- MEXC subaccount support in exchange configuration
+- Detailed API credential setup instructions with links to MEXC API management page
 
 ### Fixed
 - **403 Forbidden error** on Cloud Run deployment by adding explicit IAM policy binding step
 - Deployment configuration now automatically grants public access without manual intervention
+- **Incorrect MEXC API credential format** in .env.example with proper descriptive placeholders
+- **Missing subaccount configuration** support for MEXC exchange
 
 ### Changed
 - Updated Cloud Build configuration to include automatic IAM policy setup
 - Enhanced README with clearer deployment instructions and better troubleshooting section
 - Improved explanation of why 403 errors occur and how the fix works
+- Updated .env.example with proper MEXC API key format and subaccount support
+- Enhanced exchange.py to support optional MEXC subaccount trading
 
 ## [Previous Releases]
 

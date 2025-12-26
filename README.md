@@ -15,6 +15,9 @@ A cryptocurrency trading bot for QRL/USDT pair on MEXC exchange, implementing a 
 
 - Python 3.9 or higher
 - MEXC exchange account with API keys
+  - Create API keys at: https://www.mexc.com/user/openapi
+  - Enable "Spot Trading" permission
+  - For subaccount trading, specify the subaccount name in `.env`
 - Basic understanding of cryptocurrency trading risks
 
 ## 🚀 Quick Start
@@ -34,6 +37,9 @@ pip install -r requirements.txt
 ```bash
 cp .env.example .env
 # Edit .env with your MEXC API credentials
+# Get your API keys from: https://www.mexc.com/user/openapi
+# Required: MEXC_API_KEY, MEXC_API_SECRET
+# Optional: MEXC_SUBACCOUNT (for subaccount trading)
 ```
 
 #### 3. Run
