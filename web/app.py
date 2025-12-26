@@ -339,19 +339,27 @@ def get_market_data() -> JSONResponse:
 
 
 @app.get("/api/market/chart-data")
-def get_chart_data() -> JSONResponse:
+def get_chart_data(timeframe: str = "1h") -> JSONResponse:
     """
     Get historical price and indicator data for chart visualization.
     Data is automatically cached in Redis per MEXC API integration.
     
+    Args:
+        timeframe: Timeframe for chart data (1m, 5m, 15m, 30m, 1h, 4h, 1d)
+    
     Returns:
-        JSONResponse: Chart data with timestamps, prices, and EMA values
+        JSONResponse: Chart data with timestamps, prices, volumes, and EMA values
     """
     try:
+        # Validate timeframe
+        valid_timeframes = ["1m", "5m", "15m", "30m", "1h", "4h", "1d"]
+        if timeframe not in valid_timeframes:
+            timeframe = "1h"
+        
         # Fetch OHLCV data (automatically cached in Redis with 60s TTL)
         ohlcv = exchange_client.fetch_ohlcv(
             config.trading.symbol,
-            config.trading.timeframe,
+            timeframe,
             limit=100  # Last 100 candles for chart
         )
         
@@ -391,6 +399,95 @@ def get_chart_data() -> JSONResponse:
             {"error": str(e)},
             status_code=500
         )
+
+
+@app.get("/api/market/indicators")
+def get_indicators(timeframe: str = "1h") -> JSONResponse:
+    """
+    Get technical indicators calculated from Redis-cached MEXC OHLCV data.
+    Includes Williams %R, MACD, RSI, MA, and Volume analysis.
+    
+    Args:
+        timeframe: Timeframe for indicators (1m, 5m, 15m, 30m, 1h, 4h, 1d)
+    
+    Returns:
+        JSONResponse: Technical indicators data
+    """
+    try:
+        import pandas as pd
+        
+        # Validate timeframe
+        valid_timeframes = ["1m", "5m", "15m", "30m", "1h", "4h", "1d"]
+        if timeframe not in valid_timeframes:
+            timeframe = "1h"
+        
+        # Fetch OHLCV data (automatically cached in Redis)
+        ohlcv = exchange_client.fetch_ohlcv(
+            config.trading.symbol,
+            timeframe,
+            limit=100
+        )
+        
+        if not ohlcv or len(ohlcv) == 0:
+            return JSONResponse({"error": "No data available"}, status_code=404)
+        
+        df = pd.DataFrame(ohlcv, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
+        
+        # Williams %R (14-period)
+        period = 14
+        df['highest_high'] = df['high'].rolling(window=period).max()
+        df['lowest_low'] = df['low'].rolling(window=period).min()
+        df['williams_r'] = ((df['highest_high'] - df['close']) / 
+                           (df['highest_high'] - df['lowest_low'])) * -100
+        
+        # MACD (12, 26, 9)
+        df['ema12'] = df['close'].ewm(span=12, adjust=False).mean()
+        df['ema26'] = df['close'].ewm(span=26, adjust=False).mean()
+        df['macd'] = df['ema12'] - df['ema26']
+        df['macd_signal'] = df['macd'].ewm(span=9, adjust=False).mean()
+        df['macd_histogram'] = df['macd'] - df['macd_signal']
+        
+        # RSI (14-period)
+        delta = df['close'].diff()
+        gain = (delta.where(delta > 0, 0)).rolling(window=period).mean()
+        loss = (-delta.where(delta < 0, 0)).rolling(window=period).mean()
+        rs = gain / loss
+        df['rsi'] = 100 - (100 / (1 + rs))
+        
+        # MA (20, 60)
+        df['ma20'] = df['close'].rolling(window=20).mean()
+        df['ma60'] = df['close'].rolling(window=60).mean()
+        
+        # Volume color (green if close > open, red otherwise)
+        df['volume_color'] = df.apply(lambda row: 'rgba(0, 255, 0, 0.7)' if row['close'] >= row['open'] else 'rgba(255, 0, 0, 0.7)', axis=1)
+        
+        indicators_data = {
+            "timeframe": timeframe,
+            "labels": [
+                datetime.fromtimestamp(ts/1000).strftime('%m-%d %H:%M')
+                for ts in df['timestamp'].tolist()
+            ],
+            "williams_r": df['williams_r'].fillna(0).tolist(),
+            "macd": df['macd'].fillna(0).tolist(),
+            "macd_signal": df['macd_signal'].fillna(0).tolist(),
+            "macd_histogram": df['macd_histogram'].fillna(0).tolist(),
+            "rsi": df['rsi'].fillna(50).tolist(),
+            "ma20": df['ma20'].fillna(0).tolist(),
+            "ma60": df['ma60'].fillna(0).tolist(),
+            "volumes": df['volume'].tolist(),
+            "volume_colors": df['volume_color'].tolist(),
+            "metadata": {
+                "symbol": config.trading.symbol,
+                "timeframe": timeframe,
+                "data_points": len(df),
+                "timestamp": datetime.utcnow().isoformat(),
+            }
+        }
+        
+        return JSONResponse(indicators_data)
+    except Exception as e:
+        logger.error(f"Error calculating indicators: {e}")
+        return JSONResponse({"error": str(e)}, status_code=500)
 
 
 @app.get("/api/performance")
