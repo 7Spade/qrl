@@ -108,7 +108,7 @@ qrl/
 ├── risk.py            # Risk management
 ├── state.py           # Position tracking (SQLite)
 ├── strategy.py        # EMA-based strategy
-├── web/app.py         # Dash dashboard
+├── web/dash_app.py    # Dash dashboard
 ├── Dockerfile         # Container configuration
 ├── cloudbuild.yaml    # Cloud Build setup
 ├── pyproject.toml     # Python project config

@@ -2,6 +2,25 @@
 
 ## [Unreleased]
 
+### Changed
+- **Migrated from FastAPI to Dash**: Replaced FastAPI web framework with Dash for interactive dashboards
+- Web dashboard now uses Dash with Bootstrap theme (CYBORG)
+- Updated all documentation to reflect Dash migration
+- Dashboard now runs with `python web/dash_app.py` instead of `uvicorn web.app:app`
+
+### Removed
+- FastAPI dependencies (fastapi, uvicorn, jinja2)
+- Legacy HTML templates (index.html, history.html)
+- Old web/app.py file
+
+### Added
+- Dash dependencies (dash, dash-bootstrap-components, plotly)
+- Interactive Plotly charts for price and technical indicators
+- Real-time dashboard with auto-refresh functionality
+- Enhanced visualization with candlestick charts and subplots
+
+## [Previous Changes]
+
 ### Added
 - Comprehensive documentation for MEXC API credentials and Cloud Run authentication
 - Detailed troubleshooting guide for 403 Forbidden errors
@@ -22,7 +41,7 @@
 - Updated Chinese quick start guide (快速開始.md) with authentication options
 - Removed complex conditional deployment logic that was causing build failures
 
-## [Previous Changes]
+## [Historical Changes]
 
 ### Added
 - Explicit IAM policy binding step in Cloud Build configuration to prevent 403 Forbidden errors

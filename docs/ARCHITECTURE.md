@@ -52,7 +52,7 @@ qrl/
 │   └── monitoring/           # Logging & alerts
 │       └── logger.py         # Structured logger
 ├── web/                      # Web dashboard
-│   ├── app_new.py            # Enhanced FastAPI app
+│   ├── dash_app.py            # Enhanced Dash app
 │   └── templates/
 │       └── dashboard.html    # Improved UI
 ├── tests/                    # Test suite
@@ -167,7 +167,7 @@ qrl/
 - Clear event tracking
 - Foundation for alerting
 
-### 8. Web Dashboard (`web/app_new.py`)
+### 8. Web Dashboard (`web/dash_app.py`)
 
 **Features**:
 - Real-time market data with EMA indicators
@@ -344,7 +344,7 @@ See `docs/MIGRATION_GUIDE.md` for step-by-step migration instructions.
 ### Optimization Areas
 
 1. **Caching**: EMA calculations cached in memory
-2. **Async**: FastAPI endpoints are async
+2. **Async**: Dash callbacks handle updates
 3. **Database**: SQLite with proper indexing
 4. **API Calls**: Rate limiting enabled
 
