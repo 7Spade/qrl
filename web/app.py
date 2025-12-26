@@ -32,7 +32,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="QRL Trading Bot Dashboard")
-templates = Jinja2Templates(directory="web/templates")
+templates = Jinja2Templates(directory="web/views")
 
 # Initialize components with error handling
 try:
