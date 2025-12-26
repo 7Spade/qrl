@@ -8,7 +8,7 @@ A cryptocurrency trading bot for QRL/USDT pair on MEXC exchange, implementing a 
 - **Risk Management**: Configurable position limits and order sizes
 - **Automated Trading**: Autonomous limit order placement
 - **Position Tracking**: SQLite-based state persistence
-- **Web Dashboard**: Real-time monitoring via FastAPI
+- **Web Dashboard**: Real-time monitoring via Dash
 - **Cloud Ready**: Docker support for Google Cloud Run
 - **Redis Caching**: High-performance caching (REQUIRED - see [Redis Setup](#redis-setup))
 
@@ -65,7 +65,7 @@ redis-cli ping  # Should return PONG
 
 # 4. Run
 python main.py              # Trading bot
-uvicorn web.app:app --reload  # Web dashboard
+python web/dash_app.py  # Web dashboard
 ```
 
 ### Cloud Deployment
@@ -108,7 +108,7 @@ qrl/
 ├── risk.py            # Risk management
 ├── state.py           # Position tracking (SQLite)
 ├── strategy.py        # EMA-based strategy
-├── web/app.py         # FastAPI dashboard
+├── web/app.py         # Dash dashboard
 ├── Dockerfile         # Container configuration
 ├── cloudbuild.yaml    # Cloud Build setup
 ├── pyproject.toml     # Python project config
