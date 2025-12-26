@@ -7,6 +7,7 @@ and comprehensive error handling.
 Usage:
     python main.py
 """
+
 import sys
 from src.core.engine import TradingEngine
 
