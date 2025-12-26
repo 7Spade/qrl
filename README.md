@@ -10,6 +10,7 @@ A cryptocurrency trading bot for QRL/USDT pair on MEXC exchange, implementing a 
 - **Position Tracking**: SQLite-based state persistence
 - **Web Dashboard**: Real-time monitoring via FastAPI
 - **Cloud Ready**: Docker support for Google Cloud Run
+- **Redis Caching**: Optional high-performance caching with advanced features (see [Redis Best Practices](#-redis-caching-best-practices))
 
 ## 📋 Prerequisites
 
@@ -140,6 +141,67 @@ Common issues and solutions:
 | 403 Cloud Run error | See [Authentication Guide](docs/AUTHENTICATION_GUIDE.md) |
 
 For detailed troubleshooting, see [docs/QUICK_REFERENCE.md](docs/QUICK_REFERENCE.md).
+
+## 📦 Redis Caching Best Practices
+
+The QRL trading bot includes optional Redis caching for improved performance. Redis caching is production-ready with advanced features:
+
+### Features
+
+- **Namespace Isolation**: Separate cache keys per environment (dev/staging/prod)
+- **Version Control**: Built-in cache versioning for schema migrations
+- **Configurable TTLs**: Fine-tuned cache expiration per data type
+- **Safe Invalidation**: Granular cache clearing without affecting shared Redis
+- **Error Handling**: Robust JSON serialization for trading data types (Decimal, datetime)
+- **Memory Management**: LRU eviction policy prevents unbounded growth
+- **Cache Warming**: Optional preloading of frequently accessed data
+
+### Configuration
+
+Add to your `.env` file:
+
+```bash
+# Redis connection
+REDIS_URL=redis://default:password@your-redis-host:6379
+
+# Optional: TTL configuration (in seconds)
+REDIS_CACHE_TTL=60              # Default TTL
+REDIS_CACHE_TTL_TICKER=5        # Fast-changing ticker data
+REDIS_CACHE_TTL_OHLCV=60        # Relatively stable OHLCV data
+REDIS_CACHE_TTL_DEALS=10        # Moderately changing deals
+REDIS_CACHE_TTL_ORDERBOOK=5     # Fast-changing order book
+
+# Optional: Namespace for environment separation
+REDIS_NAMESPACE=qrl             # Use "qrl-dev", "qrl-staging", etc.
+```
+
+### Usage Examples
+
+```python
+from src.data.exchange import ExchangeClient
+
+# Automatic caching (uses configured TTLs)
+data = exchange_client.fetch_ohlcv("QRL/USDT", "1d", 120)
+
+# Force bypass cache
+data = exchange_client.fetch_ticker("QRL/USDT", use_cache=False)
+
+# Cache invalidation
+exchange_client.invalidate_cache(symbol="QRL/USDT")  # Clear specific symbol
+exchange_client.invalidate_cache()                   # Clear all cache
+
+# Cache statistics
+stats = exchange_client.get_cache_stats()
+```
+
+### Benefits
+
+- **Performance**: 10-100x faster for repeated data fetches
+- **Cost Reduction**: Fewer API calls to MEXC exchange
+- **Rate Limit Protection**: Reduces risk of hitting API rate limits
+- **Resilience**: Continues serving cached data during brief network issues
+
+For detailed Redis implementation details, see [docs/REDIS_IMPROVEMENTS.md](docs/REDIS_IMPROVEMENTS.md).
 
 ## 📝 License
 
