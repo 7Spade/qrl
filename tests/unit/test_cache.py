@@ -2,11 +2,12 @@
 Unit tests for Redis cache module.
 
 Tests cache functionality, error handling, and data serialization.
+Redis is REQUIRED for trading bot operation.
 """
 import pytest
 from datetime import datetime
 from decimal import Decimal
-from unittest.mock import Mock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 from src.data.cache import CacheClient, CustomJSONEncoder
 from src.core.config import CacheConfig
 
@@ -37,67 +38,61 @@ class TestCustomJSONEncoder:
         assert '"binary": "test"' in result
 
 
+class TestCacheConfig:
+    """Test cache configuration."""
+    
+    def test_config_requires_redis_url(self):
+        """Test that CacheConfig requires redis_url."""
+        with pytest.raises(Exception):  # Pydantic validation error
+            CacheConfig()
+    
+    def test_config_from_env_without_url_fails(self):
+        """Test that from_env raises error without REDIS_URL."""
+        import os
+        # Ensure REDIS_URL is not set
+        old_url = os.environ.pop('REDIS_URL', None)
+        try:
+            with pytest.raises(ValueError, match="REDIS_URL environment variable is required"):
+                CacheConfig.from_env()
+        finally:
+            if old_url:
+                os.environ['REDIS_URL'] = old_url
+
+
 class TestCacheClient:
-    """Test cases for CacheClient."""
+    """Test cases for CacheClient - Redis required."""
     
-    def setup_method(self):
-        """Setup test fixtures."""
-        self.config = CacheConfig(
-            redis_url=None,
-            redis_enabled=False,
-            cache_ttl=60,
-            cache_ttl_ticker=5,
-            cache_ttl_ohlcv=60,
-            cache_ttl_deals=10,
-            cache_ttl_orderbook=5,
-            namespace="test"
-        )
-    
-    def test_cache_disabled_by_default(self):
-        """Test cache is disabled when no Redis URL provided."""
-        client = CacheClient(self.config)
-        assert not client.enabled
+    def test_initialization_requires_redis(self):
+        """Test that CacheClient init fails without valid Redis connection."""
+        # Skip test if redis module not available
+        try:
+            import redis  # noqa: F401
+        except ImportError:
+            pytest.skip("Redis module not installed")
+        
+        config = CacheConfig(redis_url="redis://invalid-host:9999")
+        
+        with pytest.raises(RuntimeError, match="Failed to connect to Redis"):
+            CacheClient(config)
     
     def test_namespace_in_cache_key(self):
         """Test cache keys include namespace and version."""
-        client = CacheClient(self.config, namespace="test-env")
-        key = client._make_key("ticker:QRL/USDT")
-        assert key.startswith("test-env:v1:")
-        assert "ticker:QRL/USDT" in key
-    
-    def test_get_returns_none_when_disabled(self):
-        """Test get returns None when cache is disabled."""
-        client = CacheClient(self.config)
-        result = client.get("test_key")
-        assert result is None
-    
-    def test_set_returns_false_when_disabled(self):
-        """Test set returns False when cache is disabled."""
-        client = CacheClient(self.config)
-        result = client.set("test_key", {"data": "value"})
-        assert result is False
-    
-    def test_delete_returns_false_when_disabled(self):
-        """Test delete returns False when cache is disabled."""
-        client = CacheClient(self.config)
-        result = client.delete("test_key")
-        assert result is False
-    
-    def test_clear_all_safe_with_namespace(self):
-        """Test clear_all only clears namespaced keys."""
-        # This test verifies the pattern used in clear_all
-        client = CacheClient(self.config, namespace="test-app")
-        pattern = f"{client.namespace}:{client.VERSION}:*"
-        assert pattern == "test-app:v1:*"
-    
-    def test_get_stats_when_disabled(self):
-        """Test stats when cache is disabled."""
-        client = CacheClient(self.config, namespace="test")
-        stats = client.get_stats()
-        assert stats["enabled"] is False
-        assert stats["status"] == "disabled"
-        assert stats["namespace"] == "test"
-        assert stats["version"] == "v1"
+        # Skip test if redis module not available
+        try:
+            import redis
+        except ImportError:
+            pytest.skip("Redis module not installed")
+        
+        with patch('redis.from_url') as mock_from_url:
+            mock_redis_instance = MagicMock()
+            mock_redis_instance.ping.return_value = True
+            mock_from_url.return_value = mock_redis_instance
+            
+            config = CacheConfig(redis_url="redis://localhost:6379")
+            client = CacheClient(config, namespace="test-env")
+            key = client._make_key("ticker:QRL/USDT")
+            assert key.startswith("test-env:v1:")
+            assert "ticker:QRL/USDT" in key
     
     def test_cache_with_mock_redis(self):
         """Test cache operations with mocked Redis."""
@@ -107,7 +102,6 @@ class TestCacheClient:
         except ImportError:
             pytest.skip("Redis module not installed")
         
-        from unittest.mock import patch
         with patch('redis.from_url') as mock_from_url:
             # Setup mock
             mock_redis_instance = MagicMock()
@@ -115,12 +109,7 @@ class TestCacheClient:
             mock_redis_instance.get.return_value = '{"test": "data"}'
             mock_from_url.return_value = mock_redis_instance
             
-            # Enable Redis
-            config = CacheConfig(
-                redis_url="redis://localhost:6379",
-                redis_enabled=True,
-                namespace="test"
-            )
+            config = CacheConfig(redis_url="redis://localhost:6379")
             client = CacheClient(config)
             
             # Test get
@@ -136,7 +125,6 @@ class TestCacheClient:
         except ImportError:
             pytest.skip("Redis module not installed")
         
-        from unittest.mock import patch
         with patch('redis.from_url') as mock_from_url:
             # Setup mock with invalid JSON
             mock_redis_instance = MagicMock()
@@ -145,10 +133,7 @@ class TestCacheClient:
             mock_redis_instance.delete.return_value = 1
             mock_from_url.return_value = mock_redis_instance
             
-            config = CacheConfig(
-                redis_url="redis://localhost:6379",
-                redis_enabled=True
-            )
+            config = CacheConfig(redis_url="redis://localhost:6379")
             client = CacheClient(config)
             
             # Should return None and delete corrupted entry
@@ -157,58 +142,80 @@ class TestCacheClient:
             # Verify delete was called to clean up
             assert mock_redis_instance.delete.called
     
-    def test_serialization_error_handling(self):
-        """Test handling of non-serializable data."""
+    def test_set_with_ttl(self):
+        """Test setting cache with custom TTL."""
         # Skip test if redis module not available
         try:
             import redis
         except ImportError:
             pytest.skip("Redis module not installed")
         
-        from unittest.mock import patch
         with patch('redis.from_url') as mock_from_url:
             mock_redis_instance = MagicMock()
             mock_redis_instance.ping.return_value = True
             mock_from_url.return_value = mock_redis_instance
             
-            config = CacheConfig(
-                redis_url="redis://localhost:6379",
-                redis_enabled=True
-            )
+            config = CacheConfig(redis_url="redis://localhost:6379")
             client = CacheClient(config)
             
-            # Try to cache non-serializable object (should handle gracefully)
+            # Set with custom TTL
+            client.set("test_key", {"data": "value"}, ttl=30)
+            
+            # Verify setex was called
+            assert mock_redis_instance.setex.called
+    
+    def test_serialization_error_raises(self):
+        """Test that non-serializable data raises ValueError."""
+        # Skip test if redis module not available
+        try:
+            import redis
+        except ImportError:
+            pytest.skip("Redis module not installed")
+        
+        with patch('redis.from_url') as mock_from_url:
+            mock_redis_instance = MagicMock()
+            mock_redis_instance.ping.return_value = True
+            mock_from_url.return_value = mock_redis_instance
+            
+            config = CacheConfig(redis_url="redis://localhost:6379")
+            client = CacheClient(config)
+            
+            # Try to cache non-serializable object
             class NonSerializable:
                 pass
             
-            result = client.set("test_key", NonSerializable())
-            # Should return False but not crash
-            assert result is False
+            with pytest.raises(ValueError, match="Cannot serialize"):
+                client.set("test_key", NonSerializable())
     
-    def test_warm_cache_basic(self):
-        """Test cache warming functionality."""
-        client = CacheClient(self.config)
+    def test_get_stats(self):
+        """Test getting cache statistics."""
+        # Skip test if redis module not available
+        try:
+            import redis
+        except ImportError:
+            pytest.skip("Redis module not installed")
         
-        def fetcher():
-            return {"data": "test"}
-        
-        # Should handle gracefully when cache disabled
-        results = client.warm_cache([
-            ("key1", fetcher, 60)
-        ])
-        assert results["failed"] == 1 or results["skipped"] == 1
-    
-    def test_delete_pattern_disabled_cache(self):
-        """Test delete_pattern returns 0 when cache disabled."""
-        client = CacheClient(self.config)
-        count = client.delete_pattern("ticker:*")
-        assert count == 0
-    
-    def test_clear_symbol_disabled_cache(self):
-        """Test clear_symbol returns 0 when cache disabled."""
-        client = CacheClient(self.config)
-        count = client.clear_symbol("QRL/USDT")
-        assert count == 0
+        with patch('redis.from_url') as mock_from_url:
+            mock_redis_instance = MagicMock()
+            mock_redis_instance.ping.return_value = True
+            mock_redis_instance.info.return_value = {
+                "used_memory_human": "1.5M",
+                "used_memory_peak_human": "2M",
+                "maxmemory_policy": "allkeys-lru",
+                "uptime_in_seconds": 3600,
+                "evicted_keys": 0
+            }
+            mock_redis_instance.dbsize.return_value = 100
+            mock_redis_instance.scan_iter.return_value = iter([])
+            mock_from_url.return_value = mock_redis_instance
+            
+            config = CacheConfig(redis_url="redis://localhost:6379")
+            client = CacheClient(config)
+            
+            stats = client.get_stats()
+            assert stats["status"] == "connected"
+            assert stats["memory_used"] == "1.5M"
+            assert stats["maxmemory_policy"] == "allkeys-lru"
 
 
 class TestCacheIntegration:
@@ -216,25 +223,49 @@ class TestCacheIntegration:
     
     def test_cache_key_uniqueness(self):
         """Test that different parameters generate unique keys."""
-        client = CacheClient(CacheConfig(redis_enabled=False))
+        # Skip test if redis module not available
+        try:
+            import redis
+        except ImportError:
+            pytest.skip("Redis module not installed")
         
-        key1 = client._make_key("ohlcv:QRL/USDT:1d:120")
-        key2 = client._make_key("ohlcv:QRL/USDT:1h:120")
-        key3 = client._make_key("ohlcv:QRL/USDT:1d:60")
-        
-        # All keys should be different
-        assert key1 != key2
-        assert key1 != key3
-        assert key2 != key3
+        with patch('redis.from_url') as mock_from_url:
+            mock_redis_instance = MagicMock()
+            mock_redis_instance.ping.return_value = True
+            mock_from_url.return_value = mock_redis_instance
+            
+            config = CacheConfig(redis_url="redis://localhost:6379")
+            client = CacheClient(config)
+            
+            key1 = client._make_key("ohlcv:QRL/USDT:1d:120")
+            key2 = client._make_key("ohlcv:QRL/USDT:1h:120")
+            key3 = client._make_key("ohlcv:QRL/USDT:1d:60")
+            
+            # All keys should be different
+            assert key1 != key2
+            assert key1 != key3
+            assert key2 != key3
     
     def test_namespace_isolation(self):
         """Test that different namespaces generate different keys."""
-        client1 = CacheClient(CacheConfig(redis_enabled=False), namespace="prod")
-        client2 = CacheClient(CacheConfig(redis_enabled=False), namespace="dev")
+        # Skip test if redis module not available
+        try:
+            import redis
+        except ImportError:
+            pytest.skip("Redis module not installed")
         
-        key1 = client1._make_key("ticker:QRL/USDT")
-        key2 = client2._make_key("ticker:QRL/USDT")
-        
-        assert key1 != key2
-        assert "prod" in key1
-        assert "dev" in key2
+        with patch('redis.from_url') as mock_from_url:
+            mock_redis_instance = MagicMock()
+            mock_redis_instance.ping.return_value = True
+            mock_from_url.return_value = mock_redis_instance
+            
+            config = CacheConfig(redis_url="redis://localhost:6379")
+            client1 = CacheClient(config, namespace="prod")
+            client2 = CacheClient(config, namespace="dev")
+            
+            key1 = client1._make_key("ticker:QRL/USDT")
+            key2 = client2._make_key("ticker:QRL/USDT")
+            
+            assert key1 != key2
+            assert "prod" in key1
+            assert "dev" in key2

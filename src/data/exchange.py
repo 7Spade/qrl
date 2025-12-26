@@ -49,25 +49,26 @@ def retry_on_network_error(max_attempts: int = 3, delay: float = 1.0):
 class ExchangeClient:
     """MEXC exchange client wrapper with Redis caching and retry support."""
     
-    def __init__(self, config: ExchangeConfig, cache_config: Optional[CacheConfig] = None):
+    def __init__(self, config: ExchangeConfig, cache_config: CacheConfig):
         """
         Initialize exchange client.
         
         Args:
             config: Exchange configuration
-            cache_config: Optional cache configuration for Redis
+            cache_config: Cache configuration (REQUIRED)
+            
+        Raises:
+            RuntimeError: If cache initialization fails
         """
         self.config = config
         self.cache_config = cache_config
         self._exchange: Optional[ccxt.Exchange] = None
-        self._cache: Optional[CacheClient] = None
         
-        # Initialize cache if provided
-        if cache_config:
-            self._cache = CacheClient(
-                cache_config,
-                namespace=cache_config.namespace
-            )
+        # Initialize cache - REQUIRED
+        self._cache = CacheClient(
+            cache_config,
+            namespace=cache_config.namespace
+        )
     
     @property
     def exchange(self) -> ccxt.Exchange:
@@ -117,11 +118,12 @@ class ExchangeClient:
         Raises:
             ccxt.NetworkError: Network connection failed after retries
             ccxt.ExchangeError: Exchange API error
+            RuntimeError: If Redis operation fails
         """
         cache_key = self._get_cache_key("ticker", symbol)
         
         # Try cache first if enabled
-        if use_cache and self._cache and self._cache.enabled:
+        if use_cache:
             cached_data = self._cache.get(cache_key)
             if cached_data:
                 return cached_data
@@ -130,8 +132,7 @@ class ExchangeClient:
         data = self.exchange.fetch_ticker(symbol)
         
         # Store in cache with configured TTL for ticker data
-        if self._cache and self._cache.enabled and self.cache_config:
-            self._cache.set(cache_key, data, ttl=self.cache_config.cache_ttl_ticker)
+        self._cache.set(cache_key, data, ttl=self.cache_config.cache_ttl_ticker)
         
         return data
     
@@ -158,11 +159,12 @@ class ExchangeClient:
         Raises:
             ccxt.NetworkError: Network connection failed after retries
             ccxt.ExchangeError: Exchange API error
+            RuntimeError: If Redis operation fails
         """
         cache_key = self._get_cache_key("ohlcv", symbol, timeframe, limit)
         
         # Try cache first if enabled
-        if use_cache and self._cache and self._cache.enabled:
+        if use_cache:
             cached_data = self._cache.get(cache_key)
             if cached_data:
                 return cached_data
@@ -171,8 +173,7 @@ class ExchangeClient:
         data = self.exchange.fetch_ohlcv(symbol, timeframe, limit)
         
         # Store in cache with configured TTL for OHLCV data
-        if self._cache and self._cache.enabled and self.cache_config:
-            self._cache.set(cache_key, data, ttl=self.cache_config.cache_ttl_ohlcv)
+        self._cache.set(cache_key, data, ttl=self.cache_config.cache_ttl_ohlcv)
         
         return data
     
@@ -236,11 +237,12 @@ class ExchangeClient:
         Raises:
             ccxt.NetworkError: Network connection failed after retries
             ccxt.ExchangeError: Exchange API error
+            RuntimeError: If Redis operation fails
         """
         cache_key = self._get_cache_key("deals", symbol, limit)
         
         # Try cache first if enabled
-        if use_cache and self._cache and self._cache.enabled:
+        if use_cache:
             cached_data = self._cache.get(cache_key)
             if cached_data:
                 return cached_data
@@ -249,8 +251,7 @@ class ExchangeClient:
         data = self.exchange.fetch_trades(symbol, limit=limit)
         
         # Store in cache with configured TTL for deals data
-        if self._cache and self._cache.enabled and self.cache_config:
-            self._cache.set(cache_key, data, ttl=self.cache_config.cache_ttl_deals)
+        self._cache.set(cache_key, data, ttl=self.cache_config.cache_ttl_deals)
         
         return data
     
@@ -277,11 +278,12 @@ class ExchangeClient:
         Raises:
             ccxt.NetworkError: Network connection failed after retries
             ccxt.ExchangeError: Exchange API error
+            RuntimeError: If Redis operation fails
         """
         cache_key = self._get_cache_key("orderbook", symbol, limit)
         
         # Try cache first if enabled
-        if use_cache and self._cache and self._cache.enabled:
+        if use_cache:
             cached_data = self._cache.get(cache_key)
             if cached_data:
                 return cached_data
@@ -290,8 +292,7 @@ class ExchangeClient:
         data = self.exchange.fetch_order_book(symbol, limit=limit)
         
         # Store in cache with configured TTL for order book data
-        if self._cache and self._cache.enabled and self.cache_config:
-            self._cache.set(cache_key, data, ttl=self.cache_config.cache_ttl_orderbook)
+        self._cache.set(cache_key, data, ttl=self.cache_config.cache_ttl_orderbook)
         
         return data
     
@@ -301,12 +302,13 @@ class ExchangeClient:
         
         Returns:
             Dictionary with cache stats
+            
+        Raises:
+            RuntimeError: If Redis operation fails
         """
-        if self._cache:
-            return self._cache.get_stats()
-        return {"enabled": False, "status": "not configured"}
+        return self._cache.get_stats()
     
-    def invalidate_cache(self, symbol: Optional[str] = None) -> dict:
+    def invalidate_cache(self, symbol: str | None = None) -> dict:
         """
         Invalidate cache entries.
         
@@ -315,22 +317,20 @@ class ExchangeClient:
             
         Returns:
             Dictionary with invalidation results
+            
+        Raises:
+            RuntimeError: If Redis operation fails
         """
-        if not self._cache:
-            return {"enabled": False, "status": "not configured"}
-        
         if symbol:
             count = self._cache.clear_symbol(symbol)
             return {
-                "enabled": True,
                 "symbol": symbol,
                 "keys_deleted": count,
                 "status": "success"
             }
         else:
-            success = self._cache.clear_all()
+            self._cache.clear_all()
             return {
-                "enabled": True,
-                "all_cleared": success,
-                "status": "success" if success else "failed"
+                "all_cleared": True,
+                "status": "success"
             }

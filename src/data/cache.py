@@ -1,11 +1,10 @@
 """
 Redis cache module for trading bot.
 
-Provides caching functionality using Redis for improved performance.
-Supports optional Redis integration - falls back gracefully if unavailable.
-Includes automatic reconnection on connection loss.
+Provides high-performance caching using Redis.
+Redis is REQUIRED for trading bot operation.
 """
-from typing import Optional, Any, List
+from typing import Any, List
 import json
 from datetime import timedelta, datetime
 from decimal import Decimal
@@ -27,7 +26,7 @@ class CustomJSONEncoder(json.JSONEncoder):
 
 
 class CacheClient:
-    """Redis cache client with fallback support and automatic reconnection."""
+    """Redis cache client - required component for trading bot."""
     
     # Cache key version for schema migrations
     VERSION = "v1"
@@ -37,25 +36,39 @@ class CacheClient:
         Initialize cache client.
         
         Args:
-            config: Cache configuration
+            config: Cache configuration (must have valid redis_url)
             namespace: Cache key namespace for environment separation (default: "qrl")
+            
+        Raises:
+            RuntimeError: If Redis connection cannot be established
         """
         self.config = config
         self.namespace = namespace
         self._redis = None
-        self._enabled = False
-        self._connection_available = False
         
-        if config.redis_enabled and config.redis_url:
-            self._init_redis()
+        # Initialize Redis - REQUIRED
+        self._init_redis()
     
     def _init_redis(self) -> None:
-        """Initialize Redis connection with max memory policy."""
+        """Initialize Redis connection with max memory policy.
+        
+        Raises:
+            RuntimeError: If Redis connection fails
+        """
         try:
             import redis
+        except ImportError:
+            raise RuntimeError(
+                "Redis library not installed. Install with: pip install redis"
+            )
+        
+        try:
             self._redis = redis.from_url(
                 self.config.redis_url,
-                decode_responses=True
+                decode_responses=True,
+                socket_connect_timeout=5,
+                socket_timeout=5,
+                retry_on_timeout=True
             )
             # Test connection
             self._redis.ping()
@@ -66,51 +79,27 @@ class CacheClient:
             except Exception as e:
                 print(f"⚠️ Cannot set maxmemory-policy (may require admin): {e}")
             
-            self._enabled = True
-            self._connection_available = True
             print(f"✅ Redis connected: {self.config.redis_url.split('@')[-1]}")
-        except ImportError:
-            print("⚠️ Redis library not installed. Run: pip install redis")
-            self._enabled = False
-            self._connection_available = False
         except Exception as e:
-            print(f"⚠️ Redis connection failed: {e}")
-            self._enabled = False
-            self._connection_available = False
+            raise RuntimeError(
+                f"Failed to connect to Redis at {self.config.redis_url}: {e}\n"
+                "Redis is required for trading bot operation. "
+                "Please ensure Redis is running and REDIS_URL is configured correctly."
+            )
     
-    def _ensure_connection(self) -> bool:
+    def _ensure_connection(self) -> None:
         """
         Ensure Redis connection is available, attempt reconnection if needed.
         
-        Returns:
-            True if connected, False otherwise
+        Raises:
+            RuntimeError: If reconnection fails
         """
-        if not self._enabled:
-            return False
-        
-        if not self._connection_available or not self._redis:
-            # Attempt reconnection
-            try:
-                self._init_redis()
-            except Exception as e:
-                print(f"⚠️ Redis reconnection failed: {e}")
-                self._connection_available = False
-                return False
-        
-        # Verify connection with ping
         try:
             self._redis.ping()
-            self._connection_available = True
-            return True
         except Exception as e:
-            print(f"⚠️ Redis connection lost: {e}")
-            self._connection_available = False
-            return False
-    
-    @property
-    def enabled(self) -> bool:
-        """Check if cache is enabled and connected."""
-        return self._enabled and self._ensure_connection()
+            # Attempt reconnection
+            print(f"⚠️ Redis connection lost, attempting reconnection: {e}")
+            self._init_redis()
     
     def _make_key(self, key: str) -> str:
         """
@@ -124,7 +113,7 @@ class CacheClient:
         """
         return f"{self.namespace}:{self.VERSION}:{key}"
     
-    def get(self, key: str) -> Optional[Any]:
+    def get(self, key: str) -> Any:
         """
         Get value from cache with automatic reconnection.
         
@@ -132,32 +121,32 @@ class CacheClient:
             key: Cache key (will be namespaced automatically)
             
         Returns:
-            Cached value or None if not found/disabled
+            Cached value
+            
+        Raises:
+            RuntimeError: If Redis operation fails after reconnection attempt
         """
-        if not self._ensure_connection():
-            return None
-        
         try:
+            self._ensure_connection()
             namespaced_key = self._make_key(key)
             value = self._redis.get(namespaced_key)
             if value:
                 return json.loads(value)
+            return None
         except json.JSONDecodeError as e:
             print(f"⚠️ Cache JSON decode error for key {key}: {e}")
             # Delete corrupted cache entry
             self.delete(key)
+            return None
         except Exception as e:
-            print(f"⚠️ Cache get error: {e}")
-            self._connection_available = False
-        
-        return None
+            raise RuntimeError(f"Redis get operation failed: {e}")
     
     def set(
         self,
         key: str,
         value: Any,
-        ttl: Optional[int] = None
-    ) -> bool:
+        ttl: int | None = None
+    ) -> None:
         """
         Set value in cache with automatic reconnection.
         
@@ -166,13 +155,12 @@ class CacheClient:
             value: Value to cache (must be JSON serializable)
             ttl: Time to live in seconds (uses config default if None)
             
-        Returns:
-            True if successful, False otherwise
+        Raises:
+            RuntimeError: If Redis operation fails
+            ValueError: If value cannot be serialized
         """
-        if not self._ensure_connection():
-            return False
-        
         try:
+            self._ensure_connection()
             ttl = ttl or self.config.cache_ttl
             namespaced_key = self._make_key(key)
             self._redis.setex(
@@ -180,36 +168,27 @@ class CacheClient:
                 timedelta(seconds=ttl),
                 json.dumps(value, cls=CustomJSONEncoder)
             )
-            return True
         except (TypeError, ValueError) as e:
-            print(f"⚠️ Cache serialization error for key {key}: {e}")
-            return False
+            raise ValueError(f"Cannot serialize value for key {key}: {e}")
         except Exception as e:
-            print(f"⚠️ Cache set error: {e}")
-            self._connection_available = False
-            return False
+            raise RuntimeError(f"Redis set operation failed: {e}")
     
-    def delete(self, key: str) -> bool:
+    def delete(self, key: str) -> None:
         """
         Delete key from cache with automatic reconnection.
         
         Args:
             key: Cache key (will be namespaced automatically)
             
-        Returns:
-            True if successful, False otherwise
+        Raises:
+            RuntimeError: If Redis operation fails
         """
-        if not self._ensure_connection():
-            return False
-        
         try:
+            self._ensure_connection()
             namespaced_key = self._make_key(key)
             self._redis.delete(namespaced_key)
-            return True
         except Exception as e:
-            print(f"⚠️ Cache delete error: {e}")
-            self._connection_available = False
-            return False
+            raise RuntimeError(f"Redis delete operation failed: {e}")
     
     def delete_pattern(self, pattern: str) -> int:
         """
@@ -220,45 +199,39 @@ class CacheClient:
                     Examples: "ticker:*", "ohlcv:QRLUSDT:*"
             
         Returns:
-            Number of keys deleted, or 0 if failed
+            Number of keys deleted
+            
+        Raises:
+            RuntimeError: If Redis operation fails
         """
-        if not self._ensure_connection():
-            return 0
-        
         try:
+            self._ensure_connection()
             namespaced_pattern = self._make_key(pattern)
             keys = list(self._redis.scan_iter(match=namespaced_pattern))
             if keys:
                 return self._redis.delete(*keys)
             return 0
         except Exception as e:
-            print(f"⚠️ Cache delete pattern error: {e}")
-            self._connection_available = False
-            return 0
+            raise RuntimeError(f"Redis delete_pattern operation failed: {e}")
     
-    def clear_all(self) -> bool:
+    def clear_all(self) -> None:
         """
         Clear all cache entries for this namespace with automatic reconnection.
         
         Only clears keys with the current namespace prefix, safe for shared Redis.
         
-        Returns:
-            True if successful, False otherwise
+        Raises:
+            RuntimeError: If Redis operation fails
         """
-        if not self._ensure_connection():
-            return False
-        
         try:
+            self._ensure_connection()
             # Only delete keys with our namespace prefix
             pattern = f"{self.namespace}:{self.VERSION}:*"
             keys = list(self._redis.scan_iter(match=pattern))
             if keys:
                 self._redis.delete(*keys)
-            return True
         except Exception as e:
-            print(f"⚠️ Cache clear error: {e}")
-            self._connection_available = False
-            return False
+            raise RuntimeError(f"Redis clear_all operation failed: {e}")
     
     def clear_symbol(self, symbol: str) -> int:
         """
@@ -280,24 +253,12 @@ class CacheClient:
         
         Returns:
             Dictionary with cache stats
+            
+        Raises:
+            RuntimeError: If Redis operation fails
         """
-        if not self._enabled:
-            return {
-                "enabled": False,
-                "status": "disabled",
-                "namespace": self.namespace,
-                "version": self.VERSION
-            }
-        
-        if not self._ensure_connection():
-            return {
-                "enabled": True,
-                "status": "disconnected",
-                "namespace": self.namespace,
-                "version": self.VERSION
-            }
-        
         try:
+            self._ensure_connection()
             info = self._redis.info()
             
             # Count keys in our namespace
@@ -318,13 +279,7 @@ class CacheClient:
                 "evicted_keys": info.get("evicted_keys", 0),
             }
         except Exception as e:
-            self._connection_available = False
-            return {
-                "enabled": True,
-                "status": f"error: {e}",
-                "namespace": self.namespace,
-                "version": self.VERSION
-            }
+            raise RuntimeError(f"Redis get_stats operation failed: {e}")
     
     def warm_cache(self, keys_to_warm: List[tuple]) -> dict:
         """
@@ -335,6 +290,9 @@ class CacheClient:
             
         Returns:
             Dictionary with warming results
+            
+        Raises:
+            RuntimeError: If critical Redis operations fail
         """
         results = {"success": 0, "failed": 0, "skipped": 0}
         
@@ -347,10 +305,8 @@ class CacheClient:
                 
                 # Fetch and cache data
                 data = fetcher_fn()
-                if self.set(key, data, ttl):
-                    results["success"] += 1
-                else:
-                    results["failed"] += 1
+                self.set(key, data, ttl)
+                results["success"] += 1
             except Exception as e:
                 print(f"⚠️ Cache warming failed for key {key}: {e}")
                 results["failed"] += 1

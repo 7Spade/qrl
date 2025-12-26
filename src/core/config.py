@@ -82,15 +82,10 @@ class ExchangeConfig(BaseModel):
 
 
 class CacheConfig(BaseModel):
-    """Cache and Redis configuration."""
+    """Redis cache configuration - REQUIRED for trading bot operation."""
     
-    redis_url: Optional[str] = Field(
-        default=None,
-        description="Redis connection URL (redis://user:pass@host:port)"
-    )
-    redis_enabled: bool = Field(
-        default=False,
-        description="Enable Redis caching"
+    redis_url: str = Field(
+        description="Redis connection URL (redis://user:pass@host:port) - REQUIRED"
     )
     cache_ttl: int = Field(
         default=60,
@@ -124,11 +119,20 @@ class CacheConfig(BaseModel):
     
     @classmethod
     def from_env(cls) -> "CacheConfig":
-        """Load cache config from environment variables."""
+        """Load cache config from environment variables.
+        
+        Raises:
+            ValueError: If REDIS_URL is not set
+        """
         redis_url = os.getenv("REDIS_URL")
+        if not redis_url:
+            raise ValueError(
+                "REDIS_URL environment variable is required. "
+                "Redis caching is mandatory for trading bot operation. "
+                "Set REDIS_URL in your .env file."
+            )
         return cls(
             redis_url=redis_url,
-            redis_enabled=bool(redis_url),  # Auto-enable if URL provided
             cache_ttl=int(os.getenv("REDIS_CACHE_TTL", "60")),
             cache_ttl_ticker=int(os.getenv("REDIS_CACHE_TTL_TICKER", "5")),
             cache_ttl_ohlcv=int(os.getenv("REDIS_CACHE_TTL_OHLCV", "60")),
@@ -194,5 +198,14 @@ class AppConfig(BaseModel):
         )
 
 
-# Global configuration instance
-config = AppConfig.load()
+# Global configuration instance - lazy loaded
+# Access via get_config() to ensure proper initialization
+_config = None
+
+
+def get_config() -> "AppConfig":
+    """Get or create global configuration instance."""
+    global _config
+    if _config is None:
+        _config = AppConfig.load()
+    return _config
