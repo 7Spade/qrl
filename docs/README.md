@@ -45,34 +45,40 @@ This directory contains the essential documentation for the QRL trading bot proj
    - Performance summary
    - Official MEXC resource links
 
-7. **[MEXC_API_GUIDE.md](MEXC_API_GUIDE.md)** - Complete MEXC API integration guide
+7. **[MEXC_API_優化總結.md](MEXC_API_優化總結.md)** - MEXC API 優化總結 (中文)
+   - 效能指標與分析 (繁體中文)
+   - 快取策略優化
+   - 使用指南
+   - 最佳實踐建議
+
+8. **[MEXC_API_GUIDE.md](MEXC_API_GUIDE.md)** - Complete MEXC API integration guide
    - API endpoints documentation
    - Authentication and rate limiting
    - Optimization strategies
    - Best practices and troubleshooting
 
-8. **[MEXC_OPTIMIZATION_RECOMMENDATIONS.md](MEXC_OPTIMIZATION_RECOMMENDATIONS.md)** - MEXC API optimization analysis
+9. **[MEXC_OPTIMIZATION_RECOMMENDATIONS.md](MEXC_OPTIMIZATION_RECOMMENDATIONS.md)** - MEXC API optimization analysis
    - Performance metrics and analysis
    - Cache strategy optimization
    - Rate limit management
    - Security recommendations
 
-9. **[REDIS_SETUP.md](REDIS_SETUP.md)** - Redis configuration
-   - Redis installation
-   - Environment variables
-   - Caching configuration
+10. **[REDIS_SETUP.md](REDIS_SETUP.md)** - Redis configuration
+    - Redis installation
+    - Environment variables
+    - Caching configuration
 
-10. **[REDIS_CACHING_GUIDE.md](REDIS_CACHING_GUIDE.md)** - MEXC API caching integration
+11. **[REDIS_CACHING_GUIDE.md](REDIS_CACHING_GUIDE.md)** - MEXC API caching integration
     - Cache-aside pattern implementation
     - TTL configuration per data type
     - Performance optimization
 
-11. **[CHART_VISUALIZATION_GUIDE.md](CHART_VISUALIZATION_GUIDE.md)** - Chart.js integration
+12. **[CHART_VISUALIZATION_GUIDE.md](CHART_VISUALIZATION_GUIDE.md)** - Chart.js integration
     - Interactive chart setup
     - Multi-timeframe selector
     - Chart data API usage
 
-12. **[TECHNICAL_INDICATORS_GUIDE.md](TECHNICAL_INDICATORS_GUIDE.md)** - Technical indicators
+13. **[TECHNICAL_INDICATORS_GUIDE.md](TECHNICAL_INDICATORS_GUIDE.md)** - Technical indicators
     - Williams %R, MA, MACD, RSI, Volume, EMA
     - Calculation methodologies
     - Usage in trading strategies
@@ -94,6 +100,7 @@ docs/
 ├── PROJECT_STRUCTURE.md             # Module reference
 ├── QUICK_START.md                  # Getting started
 ├── MEXC_DOCUMENTATION_INDEX.md     # MEXC docs navigation
+├── MEXC_API_優化總結.md             # MEXC optimization (Chinese)
 ├── MEXC_API_GUIDE.md               # MEXC API integration
 ├── MEXC_OPTIMIZATION_RECOMMENDATIONS.md # MEXC optimization
 ├── REDIS_SETUP.md                  # Redis config
