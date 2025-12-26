@@ -80,9 +80,9 @@ class CacheConfig(BaseModel):
         default=60, gt=0, description="Default cache TTL in seconds"
     )
     cache_ttl_ticker: int = Field(
-        default=5,
+        default=30,
         gt=0,
-        description="Cache TTL for ticker data (fast-changing, real-time)",
+        description="Cache TTL for ticker data (moderately changing)",
     )
     cache_ttl_ohlcv: int = Field(
         default=86400,  # 24 hours for historical candle data
@@ -128,7 +128,7 @@ class CacheConfig(BaseModel):
         return cls(
             redis_url=redis_url,
             cache_ttl=int(os.getenv("REDIS_CACHE_TTL", "60")),
-            cache_ttl_ticker=int(os.getenv("REDIS_CACHE_TTL_TICKER", "5")),
+            cache_ttl_ticker=int(os.getenv("REDIS_CACHE_TTL_TICKER", "30")),
             cache_ttl_ohlcv=int(os.getenv("REDIS_CACHE_TTL_OHLCV", "86400")),
             cache_ttl_deals=int(os.getenv("REDIS_CACHE_TTL_DEALS", "10")),
             cache_ttl_orderbook=int(
