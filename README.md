@@ -148,7 +148,6 @@ qrl/
 
 ## 📚 Documentation
 
-- **[QUICK_REFERENCE.md](QUICK_REFERENCE.md)** - Quick reference for common tasks
 - **[MEXC_API_SETUP.md](MEXC_API_SETUP.md)** - Comprehensive guide for setting up MEXC API credentials
 - **[AUTHENTICATION_GUIDE.md](AUTHENTICATION_GUIDE.md)** - Detailed guide for Cloud Run authentication (public vs IAM)
 - **[快速開始.md](快速開始.md)** - Chinese quick start guide

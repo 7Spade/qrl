@@ -2,6 +2,22 @@
 
 ## [Unreleased]
 
+### Changed
+- **Major Project Simplification** - Removed 1.7MB of unrelated content while maintaining 100% functionality
+  - Removed entire `.github/` directory containing generic AI agent/prompt templates (17 files, ~7,906 lines)
+    - Deleted MCP (Model Context Protocol) server development templates
+    - Deleted Semantic Kernel / Microsoft Agent Framework instructions
+    - Deleted LangChain / Playwright development guides
+    - Deleted generic Python coding standards
+  - Removed redundant documentation files:
+    - `PROJECT_ANALYSIS.md` (internal technical doc not needed by users)
+    - `QUICK_REFERENCE.md` (content duplicated in README)
+  - Updated README.md to reflect simplified documentation structure
+  - Added `SIMPLIFICATION_SUMMARY.md` documenting all changes
+  - **Result**: 19 files removed (~8,283 lines), 40% documentation reduction, 0% code changes
+
+## [Previous Releases]
+
 ### Added
 - Comprehensive documentation for MEXC API credentials and Cloud Run authentication
 - Detailed troubleshooting guide for 403 Forbidden errors
