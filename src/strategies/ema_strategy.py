@@ -74,10 +74,10 @@ class EMAAccumulationStrategy(BaseStrategy):
         
         latest = df.iloc[-1]
         
-        near_support = (
+        near_support = bool(
             latest["close"] <= latest["ema_long"] * self.support_threshold
         )
-        positive_momentum = latest["ema_short"] >= latest["ema_long"]
+        positive_momentum = bool(latest["ema_short"] >= latest["ema_long"])
         
         should_buy = near_support and positive_momentum
         
@@ -86,9 +86,9 @@ class EMAAccumulationStrategy(BaseStrategy):
             should_sell=False,
             confidence=1.0 if should_buy else 0.0,
             metadata={
-                "price": latest["close"],
-                "ema_short": latest["ema_short"],
-                "ema_long": latest["ema_long"],
+                "price": float(latest["close"]),
+                "ema_short": float(latest["ema_short"]),
+                "ema_long": float(latest["ema_long"]),
                 "near_support": near_support,
                 "positive_momentum": positive_momentum,
             }
