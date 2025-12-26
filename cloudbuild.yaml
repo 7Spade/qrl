@@ -11,7 +11,7 @@ steps:
   - name: 'gcr.io/cloud-builders/docker'
     args: ['push', 'gcr.io/$PROJECT_ID/qrl-bot:${_IMAGE_TAG}']
   
-  # Deploy to Cloud Run with public access
+  # Deploy to Cloud Run with IAM authentication (private access)
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: gcloud
     args:
@@ -24,13 +24,13 @@ steps:
       - 'asia-east1'
       - '--platform'
       - 'managed'
-      - '--allow-unauthenticated'
+      - '--no-allow-unauthenticated'
       - '--port'
       - '8080'
       - '--set-env-vars'
       - 'SYMBOL=QRL/USDT'
   
-  # Explicitly set IAM policy to allow public access
+  # Grant access to ac7x7x@gmail.com
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: gcloud
     args:
@@ -39,7 +39,7 @@ steps:
       - 'add-iam-policy-binding'
       - 'qrl-bot'
       - '--region=asia-east1'
-      - '--member=allUsers'
+      - '--member=user:ac7x7x@gmail.com'
       - '--role=roles/run.invoker'
 
 images:
