@@ -211,7 +211,7 @@ REDIS_URL=redis://default:password@your-redis-host:6379
 # Optional: TTL configuration (in seconds)
 REDIS_CACHE_TTL=60              # Default TTL
 REDIS_CACHE_TTL_TICKER=5        # Fast-changing ticker data
-REDIS_CACHE_TTL_OHLCV=60        # Relatively stable OHLCV data
+REDIS_CACHE_TTL_OHLCV=86400     # Historical OHLCV (24 hours - candles rarely change)
 REDIS_CACHE_TTL_DEALS=10        # Moderately changing deals
 REDIS_CACHE_TTL_ORDERBOOK=5     # Fast-changing order book
 

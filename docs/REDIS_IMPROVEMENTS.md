@@ -23,30 +23,57 @@ This document outlines the improvements made to the Redis cache storage logic in
 - Environment isolation (dev/staging/prod can share Redis instance)
 - Safe multi-tenant deployments
 
+### 1.1. Unreadable Cache Keys (MD5 Hash) ✅ FIXED
+
+**Problem:**
+- Cache keys used MD5 hash making them impossible to debug
+- Example: `mexc:c541fe07ead95208` - no way to know what data this represents
+- Difficult to manually inspect or invalidate specific cache entries
+- Hard to troubleshoot caching issues
+
+**Solution:**
+- Removed MD5 hashing from cache key generation
+- Use human-readable cache keys with clear structure
+- Example keys:
+  - Old: `mexc:c541fe07ead95208`
+  - New: `ohlcv:QRL/USDT:1d:120`
+  - New: `ticker:QRL/USDT`
+  - New: `deals:QRL/USDT:20`
+
+**Benefits:**
+- Easy debugging and monitoring
+- Can manually inspect Redis keys: `redis-cli keys "ohlcv:*"`
+- Clear understanding of cached data
+- Simpler troubleshooting and manual cache invalidation
+
 ### 2. Inconsistent TTL Values ✅ FIXED
 
 **Problem:**
-- TTL values were hardcoded per endpoint:
-  - ticker: 5 seconds
-  - ohlcv: 60 seconds
-  - deals: 10 seconds
-  - orderbook: 5 seconds
+- TTL values were hardcoded and too short for historical data:
+  - ticker: 5 seconds ✓
+  - ohlcv: 60 seconds ❌ (too short for historical candles)
+  - deals: 10 seconds ✓
+  - orderbook: 5 seconds ✓
 - Not configurable without code changes
+- Historical OHLCV data was being re-fetched every minute despite not changing
 
 **Solution:**
+- Adjusted default TTL for OHLCV to 86400 seconds (24 hours)
+- Historical candle data rarely changes once the candle closes
 - Added configurable TTL fields to `CacheConfig`:
   - `cache_ttl`: Default TTL (60s)
-  - `cache_ttl_ticker`: Ticker data TTL (5s)
-  - `cache_ttl_ohlcv`: OHLCV data TTL (60s)
+  - `cache_ttl_ticker`: Ticker data TTL (5s) - real-time price
+  - `cache_ttl_ohlcv`: OHLCV data TTL (86400s / 24 hours) - historical candles
   - `cache_ttl_deals`: Deals/trades TTL (10s)
-  - `cache_ttl_orderbook`: Order book TTL (5s)
+  - `cache_ttl_orderbook`: Order book TTL (5s) - real-time depth
 - All values configurable via environment variables
 - Updated `ExchangeClient` to use configured TTLs
 
 **Benefits:**
+- Historical data cached for 24 hours (configurable)
+- Reduces API calls by ~1440x for OHLCV data
+- Better cost optimization for trading analysis
 - Environment-specific tuning without code changes
-- Easy adjustment for different trading strategies
-- Better cost optimization
 
 ### 3. No Cache Invalidation Strategy ✅ FIXED
 

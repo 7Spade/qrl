@@ -95,22 +95,22 @@ class CacheConfig(BaseModel):
     cache_ttl_ticker: int = Field(
         default=5,
         gt=0,
-        description="Cache TTL for ticker data (fast-changing)"
+        description="Cache TTL for ticker data (fast-changing, real-time)"
     )
     cache_ttl_ohlcv: int = Field(
-        default=60,
+        default=86400,  # 24 hours for historical candle data
         gt=0,
-        description="Cache TTL for OHLCV data"
+        description="Cache TTL for OHLCV data (historical candles, rarely change)"
     )
     cache_ttl_deals: int = Field(
         default=10,
         gt=0,
-        description="Cache TTL for deals/trades data"
+        description="Cache TTL for deals/trades data (moderately changing)"
     )
     cache_ttl_orderbook: int = Field(
         default=5,
         gt=0,
-        description="Cache TTL for order book data"
+        description="Cache TTL for order book data (fast-changing)"
     )
     namespace: str = Field(
         default="qrl",

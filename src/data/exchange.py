@@ -6,7 +6,6 @@ error handling, rate limiting, automatic retry, and Redis caching.
 """
 from typing import Dict, Any, List, Optional, Callable
 import ccxt
-import hashlib
 import time
 from functools import wraps
 from src.core.config import ExchangeConfig, CacheConfig
@@ -91,17 +90,17 @@ class ExchangeClient:
     
     def _get_cache_key(self, method: str, *args) -> str:
         """
-        Generate cache key for API call.
+        Generate human-readable cache key for API call.
         
         Args:
             method: API method name
             args: Method arguments
             
         Returns:
-            Cache key string
+            Cache key string (e.g., "ohlcv:QRL/USDT:1d:120")
         """
-        key_data = f"{method}:{':'.join(str(arg) for arg in args)}"
-        return f"mexc:{hashlib.md5(key_data.encode()).hexdigest()[:16]}"
+        # Use readable cache keys instead of MD5 hash for better debugging
+        return f"{method}:{':'.join(str(arg) for arg in args)}"
     
     @retry_on_network_error(max_attempts=3, delay=1.0)
     def fetch_ticker(self, symbol: str, use_cache: bool = True) -> Dict[str, Any]:
