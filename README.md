@@ -301,3 +301,93 @@ web/
 - Independent testing of components
 
 See [docs/DASH_ARCHITECTURE.md](docs/DASH_ARCHITECTURE.md) for details.
+
+## 🤖 自動化執行 - Cloud Scheduler + Cloud Run Jobs
+
+### 架構概述
+
+QRL 交易機器人支援兩種部署模式：
+
+1. **Web Dashboard (Cloud Run Service)**: 即時監控面板，持續運行
+2. **Trading Bot (Cloud Run Jobs)**: 定時執行交易邏輯，按需執行
+
+```
+Cloud Scheduler (定時器)
+    ↓ 觸發
+Cloud Run Jobs (交易機器人)
+    ↓ 執行
+MEXC 交易所 API
+```
+
+### 快速部署
+
+#### 1. 部署 Cloud Run Job
+
+```bash
+# 設定專案
+gcloud config set project YOUR_PROJECT_ID
+
+# 建置並部署交易機器人為 Cloud Run Job
+gcloud builds submit --config cloudbuild-job.yaml
+```
+
+#### 2. 建立 Cloud Scheduler 排程
+
+```bash
+# 設定變數
+export PROJECT_ID="YOUR_PROJECT_ID"
+export REGION="asia-east1"
+
+# 建立每日排程（上午 9:00）
+gcloud scheduler jobs create run qrl-trading-daily \
+  --location=$REGION \
+  --schedule="0 9 * * *" \
+  --time-zone="Asia/Taipei" \
+  --uri="https://$REGION-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/$PROJECT_ID/jobs/qrl-trading-job:run" \
+  --http-method=POST \
+  --oauth-service-account-email="$PROJECT_ID@appspot.gserviceaccount.com"
+```
+
+#### 3. 測試執行
+
+```bash
+# 手動觸發排程測試
+gcloud scheduler jobs run qrl-trading-daily --location=asia-east1
+
+# 查看執行結果
+gcloud run jobs executions list --job qrl-trading-job --region asia-east1
+```
+
+### 利用免費額度
+
+Cloud Scheduler 前 3 個作業免費，可設定多個時段執行：
+
+- **早上檢查** (6:00 AM): `0 6 * * *`
+- **中午檢查** (12:00 PM): `0 12 * * *`
+- **傍晚檢查** (6:00 PM): `0 18 * * *`
+
+詳細設定請參考：[Cloud Scheduler 設定指南](docs/CLOUD_SCHEDULER_SETUP.md)
+
+### 成本估算
+
+- **Cloud Scheduler**: $0.00（使用免費額度，前 3 個作業）
+- **Cloud Run Jobs**: ~$0.065 USD/月（每日執行 3 次）
+- **總計**: ~$0.065 USD/月（約 NT$2）
+
+### 相關文件
+
+| 文件 | 說明 |
+|------|------|
+| [快速部署指南](docs/DEPLOYMENT_QUICKSTART.md) | 3 步驟快速開始 |
+| [Cloud Scheduler 設定](docs/CLOUD_SCHEDULER_SETUP.md) | 詳細設定和故障排除 |
+| [Dockerfile.job](Dockerfile.job) | Cloud Run Jobs 容器設定 |
+| [cloudbuild-job.yaml](cloudbuild-job.yaml) | Cloud Build 設定檔 |
+| [scheduler-config.yaml](scheduler-config.yaml) | 排程設定範例 |
+
+### 為什麼選擇 Cloud Run Jobs？
+
+✅ **適合批次任務**: 執行完成後自動關閉，節省成本  
+✅ **原生整合**: 與 Cloud Scheduler 完美搭配  
+✅ **免費額度**: 充分利用 Cloud Scheduler 免費作業  
+✅ **無需腳本**: 純 Google Cloud 原生服務，無需編寫額外腳本  
+✅ **自動擴展**: 根據需求自動調整資源

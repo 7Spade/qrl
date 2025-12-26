@@ -1,0 +1,25 @@
+# Dockerfile for Cloud Run Jobs - Trading Bot Execution
+# This container runs the trading bot as a job, not a web service
+
+FROM python:3.11-slim
+
+WORKDIR /app
+
+ENV PYTHONUNBUFFERED=1
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc g++ && rm -rf /var/lib/apt/lists/*
+
+# Install Python dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application
+COPY . .
+
+# Create data directory
+RUN mkdir -p data
+
+# Run the trading bot main.py for job execution
+CMD ["python", "main.py"]
