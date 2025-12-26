@@ -22,4 +22,4 @@ RUN mkdir -p data
 EXPOSE 8080
 
 # Run Dash dashboard - use PORT env var if available, default to 8080
-CMD ["sh", "-c", "python web/dash_app.py"]
+CMD ["sh", "-c", "python web/app.py"]

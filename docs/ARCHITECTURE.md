@@ -52,7 +52,7 @@ qrl/
 │   └── monitoring/           # Logging & alerts
 │       └── logger.py         # Structured logger
 ├── web/                      # Web dashboard
-│   ├── dash_app.py            # Enhanced Dash app
+│   ├── app.py            # Enhanced Dash app
 │   └── templates/
 │       └── dashboard.html    # Improved UI
 ├── tests/                    # Test suite
@@ -167,7 +167,7 @@ qrl/
 - Clear event tracking
 - Foundation for alerting
 
-### 8. Web Dashboard (`web/dash_app.py`)
+### 8. Web Dashboard (`web/app.py`)
 
 **Features**:
 - Real-time market data with EMA indicators

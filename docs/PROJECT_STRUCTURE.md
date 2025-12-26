@@ -238,7 +238,7 @@ logger.strategy_signal("EMA", "BUY", {"price": 0.45})
 
 **Usage**:
 ```bash
-python web/dash_app.py
+python web/app.py
 ```
 
 ### `tests/` - Test Suite

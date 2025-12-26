@@ -40,7 +40,7 @@ python main.py
 
 ```bash
 # Start the dashboard
-python web/dash_app.py
+python web/app.py
 
 # Open browser to http://localhost:8080
 ```
@@ -67,7 +67,7 @@ python main.py
 ### Start the Dashboard
 
 ```bash
-python web/dash_app.py
+python web/app.py
 ```
 
 ### Run Tests
@@ -190,7 +190,7 @@ python main.py  # Recreates schema
 ### Access the Dashboard
 
 ```bash
-python web/dash_app.py
+python web/app.py
 # Visit http://localhost:8080
 ```
 
@@ -241,7 +241,7 @@ Before running in production:
 - [ ] `.env` file configured with valid API keys
 - [ ] Database initialized: `python main.py` (runs once)
 - [ ] Tests passing: `pytest tests/`
-- [ ] Dashboard accessible: `python web/dash_app.py`
+- [ ] Dashboard accessible: `python web/app.py`
 - [ ] Logs directory created: `mkdir -p logs`
 
 ---

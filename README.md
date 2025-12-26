@@ -65,7 +65,7 @@ redis-cli ping  # Should return PONG
 
 # 4. Run
 python main.py              # Trading bot
-python web/dash_app.py  # Web dashboard
+python web/app.py  # Web dashboard
 ```
 
 ### Cloud Deployment
@@ -276,3 +276,28 @@ Contributions welcome! Please:
 ---
 
 **Disclaimer**: This software is for educational purposes only. Use at your own risk.
+
+## 🏗️ Modular Dashboard Architecture
+
+The web dashboard uses a modular Dash architecture for better maintainability:
+
+```
+web/
+├── app.py                   # Main entry point (70 lines)
+├── components/              # Reusable UI components
+│   ├── charts.py           # Chart components (201 lines)
+│   └── cards.py            # Card components (310 lines)
+├── layouts/                 # Layout definitions
+│   └── main.py             # Dashboard layout (166 lines)
+└── callbacks/               # Callback functions
+    ├── data_callbacks.py   # Data updates (228 lines)
+    └── chart_callbacks.py  # Chart updates (96 lines)
+```
+
+**Benefits:**
+- Reduced cognitive load with focused modules
+- Easy to locate and modify specific features
+- Reusable components across layouts
+- Independent testing of components
+
+See [docs/DASH_ARCHITECTURE.md](docs/DASH_ARCHITECTURE.md) for details.

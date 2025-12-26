@@ -3,21 +3,41 @@
 ## [Unreleased]
 
 ### Changed
+- **Refactored Dash app into modular architecture**: Broke down 719-line monolithic `dash_app.py` into focused modules
+- Organized code into components, layouts, and callbacks for better maintainability
+- Renamed main entry point from `dash_app.py` to `app.py` for clarity
+- Each module now has a single responsibility (62-264 lines each)
 - **Migrated from FastAPI to Dash**: Replaced FastAPI web framework with Dash for interactive dashboards
 - Web dashboard now uses Dash with Bootstrap theme (CYBORG)
 - Updated all documentation to reflect Dash migration
-- Dashboard now runs with `python web/dash_app.py` instead of `uvicorn web.app:app`
-
-### Removed
-- FastAPI dependencies (fastapi, uvicorn, jinja2)
-- Legacy HTML templates (index.html, history.html)
-- Old web/app.py file
+- Dashboard now runs with `python web/app.py` instead of `uvicorn web.app:app`
 
 ### Added
+- **Component modules** (`web/components/`):
+  - `charts.py`: Reusable chart creation functions (204 lines)
+  - `cards.py`: Card content generators (264 lines)
+- **Layout modules** (`web/layouts/`):
+  - `main.py`: Dashboard layout structure (162 lines)
+- **Callback modules** (`web/callbacks/`):
+  - `data_callbacks.py`: Data update callbacks (177 lines)
+  - `chart_callbacks.py`: Chart update callbacks (87 lines)
+- `docs/DASH_ARCHITECTURE.md`: Comprehensive architecture documentation
 - Dash dependencies (dash, dash-bootstrap-components, plotly)
 - Interactive Plotly charts for price and technical indicators
 - Real-time dashboard with auto-refresh functionality
 - Enhanced visualization with candlestick charts and subplots
+
+### Improved
+- **Reduced cognitive load**: Smaller, focused files instead of one large file
+- **Better separation of concerns**: UI, logic, and data handling are distinct
+- **Easier testing**: Components can be tested independently
+- **Enhanced reusability**: Components can be used across different layouts
+- **Clearer code organization**: Easy to locate and modify specific functionality
+
+### Removed
+- FastAPI dependencies (fastapi, uvicorn, jinja2)
+- Legacy HTML templates (index.html, history.html)
+- Monolithic `web/dash_app.py` file (replaced with modular structure)
 
 ## [Previous Changes]
 
