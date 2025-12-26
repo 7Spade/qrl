@@ -222,3 +222,46 @@ assert 'rsi' in df.columns
 3. **Use type hints**: Improve code clarity and IDE support
 4. **Document functions**: Clear docstrings for all public functions
 5. **Consistent naming**: `create_*` for components, `update_*` for callbacks
+
+## Production Deployment
+
+### Local Development
+For local development, run the app directly with Python:
+```bash
+python web/app.py
+# Runs on http://localhost:8080
+```
+
+### Production (Cloud Run / Docker)
+For production deployment, the app uses Gunicorn for better performance and reliability:
+```bash
+gunicorn --bind 0.0.0.0:$PORT --workers 1 --threads 8 --timeout 0 web.app:server
+```
+
+**Configuration:**
+- `workers=1`: Single worker process (sufficient for Dash apps)
+- `threads=8`: Multiple threads for handling concurrent requests
+- `timeout=0`: No timeout (important for long-running callbacks)
+- `web.app:server`: References the Flask server instance
+
+### Health Check Endpoint
+The app includes a `/health` endpoint for Cloud Run health checks:
+```bash
+curl http://localhost:8080/health
+# Returns: {"status": "healthy", "service": "qrl-bot", "version": "2.0.0"}
+```
+
+This endpoint reports system health even if component initialization fails, allowing the container to start successfully.
+
+### Troubleshooting Cloud Run Deployment
+
+**Issue: Container failed to start**
+- Check that gunicorn is in `requirements.txt`
+- Verify PORT environment variable is properly set
+- Review logs for initialization errors
+- Ensure health endpoint responds within timeout
+
+**Issue: Callbacks not working**
+- Verify all callback dependencies are initialized
+- Check that callbacks handle None values gracefully
+- Review browser console for errors

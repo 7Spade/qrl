@@ -26,8 +26,13 @@
 - Interactive Plotly charts for price and technical indicators
 - Real-time dashboard with auto-refresh functionality
 - Enhanced visualization with candlestick charts and subplots
+- `/health` endpoint for Cloud Run health checks
+- Gunicorn production server configuration for Cloud Run deployment
 
-### Improved
+### Fixed
+- Cloud Run deployment: Added `/health` endpoint for container health checks
+- Cloud Run deployment: Switched to Gunicorn for production server
+- Container startup: Added proper PORT environment variable handling
 - **Reduced cognitive load**: Smaller, focused files instead of one large file
 - **Better separation of concerns**: UI, logic, and data handling are distinct
 - **Easier testing**: Components can be tested independently

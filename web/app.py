@@ -9,6 +9,7 @@ Usage:
 """
 import logging
 import os
+from flask import jsonify
 
 import dash
 import dash_bootstrap_components as dbc
@@ -32,6 +33,9 @@ app = dash.Dash(
     title="QRL Trading Bot Dashboard"
 )
 
+# Get the Flask server instance
+server = app.server
+
 # Initialize components with error handling
 initialization_error = None
 config = None
@@ -49,6 +53,22 @@ except Exception as e:
     logger.error(f"❌ Failed to initialize components: {e}")
     initialization_error = str(e)
 
+# Add health check endpoint for Cloud Run
+@server.route('/health')
+def health_check():
+    """
+    Health check endpoint for Cloud Run.
+    
+    Returns:
+        JSON response with health status
+    """
+    return jsonify({
+        "status": "healthy",
+        "service": "qrl-bot",
+        "version": "2.0.0",
+        "initialization_error": initialization_error
+    })
+
 # Set app layout
 app.layout = create_dashboard_layout()
 
@@ -57,9 +77,6 @@ data_callbacks.register_callbacks(
     app, config, state_manager, exchange_client, initialization_error
 )
 chart_callbacks.register_callbacks(app, config, exchange_client)
-
-# Server instance for deployment
-server = app.server
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 8080))

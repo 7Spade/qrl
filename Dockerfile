@@ -20,6 +20,8 @@ RUN mkdir -p data
 
 # Cloud Run will provide PORT environment variable
 EXPOSE 8080
+ENV PORT=8080
 
-# Run Dash dashboard - use PORT env var if available, default to 8080
-CMD ["sh", "-c", "python web/app.py"]
+# Run Dash dashboard with gunicorn for production
+# Cloud Run provides PORT env var, default to 8080
+CMD exec gunicorn --bind 0.0.0.0:$PORT --workers 1 --threads 8 --timeout 0 web.app:server
