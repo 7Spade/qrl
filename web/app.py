@@ -9,58 +9,70 @@ This FastAPI application provides a simple web interface to view:
 Usage:
     uvicorn app:app --reload
 """
+from typing import Dict, Any
+from datetime import datetime
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.requests import Request
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine, text, Engine
+from sqlalchemy.exc import SQLAlchemyError
 import ccxt
-import os
-from datetime import datetime
+
 
 app = FastAPI(title="QRL Trading Bot Dashboard")
 templates = Jinja2Templates(directory="web/templates")
 
-engine = create_engine("sqlite:///data/state.db")
+engine: Engine = create_engine("sqlite:///data/state.db")
+exchange: ccxt.Exchange = ccxt.mexc({"enableRateLimit": True})
 
-exchange = ccxt.mexc({"enableRateLimit": True})
+SYMBOL: str = "QRL/USDT"
 
-SYMBOL = "QRL/USDT"
 
 @app.get("/health")
-def health_check():
+def health_check() -> JSONResponse:
     """
     Health check endpoint for Cloud Run.
-    
+
     Returns:
         JSONResponse: Health status
     """
     return JSONResponse({"status": "healthy", "service": "qrl-bot"})
 
+
 @app.get("/", response_class=HTMLResponse)
-def dashboard(request: Request):
+def dashboard(request: Request) -> HTMLResponse:
     """
     Render the main dashboard page.
-    
+
     Displays current market price, position value, and timestamp.
-    
+
     Args:
         request: FastAPI request object
-        
+
     Returns:
         HTMLResponse: Rendered dashboard HTML
     """
+    price: Any = "N/A"
     try:
-        price = exchange.fetch_ticker(SYMBOL)["last"]
+        ticker: Dict[str, Any] = exchange.fetch_ticker(SYMBOL)
+        price = ticker["last"]
+    except ccxt.NetworkError as e:
+        print(f"❌ 網路錯誤: {e}")
+    except ccxt.ExchangeError as e:
+        print(f"❌ 交易所錯誤: {e}")
     except Exception as e:
-        price = "N/A"
+        print(f"❌ 未知錯誤: {e}")
 
-    with engine.connect() as conn:
-        try:
+    position: float = 0.0
+    try:
+        with engine.connect() as conn:
             pos = conn.execute(text("SELECT pos FROM state")).fetchone()
-            position = pos[0] if pos else 0
-        except:
-            position = 0
+            position = float(pos[0]) if pos else 0.0
+    except SQLAlchemyError as e:
+        print(f"❌ 資料庫錯誤: {e}")
+    except Exception as e:
+        print(f"❌ 未知錯誤: {e}")
 
     return templates.TemplateResponse(
         "index.html",
