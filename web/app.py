@@ -32,7 +32,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="QRL Trading Bot Dashboard")
-templates = Jinja2Templates(directory="web/templates")
+templates = Jinja2Templates(directory="web/views")
 
 # Initialize components with error handling
 try:
@@ -320,10 +320,10 @@ def get_logs(limit: int = 50) -> JSONResponse:
 @app.get("/api/market")
 def get_market_data() -> JSONResponse:
     """
-    Get current market data with indicators.
+    Get current market data with indicators and account balances.
     
     Returns:
-        JSONResponse: Market data and indicators
+        JSONResponse: Market data, indicators, and balances (QRL, USDT)
     """
     try:
         if not all([config, exchange_client, strategy]):
@@ -347,6 +347,16 @@ def get_market_data() -> JSONResponse:
         
         signal = strategy.analyze(ohlcv)
         
+        # Fetch account balances
+        balances = {"qrl": 0.0, "usdt": 0.0}
+        try:
+            balance_data = exchange_client.fetch_balance()
+            if balance_data and "total" in balance_data:
+                balances["qrl"] = float(balance_data["total"].get("QRL", 0))
+                balances["usdt"] = float(balance_data["total"].get("USDT", 0))
+        except Exception as e:
+            logger.warning(f"Error fetching balances: {e}")
+        
         return JSONResponse({
             "symbol": config.trading.symbol,
             "price": ticker["last"],
@@ -356,6 +366,7 @@ def get_market_data() -> JSONResponse:
             "ema60": signal.metadata.get("ema_long", 0),
             "buy_signal": signal.should_buy,
             "timestamp": datetime.utcnow().isoformat(),
+            "balances": balances
         })
     except Exception as e:
         logger.error(f"Error fetching market data: {e}")
