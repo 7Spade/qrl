@@ -96,13 +96,18 @@ def register_callbacks(app, config, state_manager, exchange_client,
             current_position = state_manager.get_position()
             
             # Get balances from exchange
+            qrl_balance = 0.0
+            usdt_balance = 0.0
             try:
-                balance = exchange_client.exchange.fetch_balance()
-                qrl_balance = balance.get('QRL', {}).get('free', 0)
-                usdt_balance = balance.get('USDT', {}).get('free', 0)
-            except:
-                qrl_balance = 0
-                usdt_balance = 0
+                balance_data = exchange_client.fetch_balance()
+                if balance_data and "total" in balance_data:
+                    qrl_balance = float(balance_data["total"].get("QRL", 0))
+                    usdt_balance = float(balance_data["total"].get("USDT", 0))
+                    logger.info(f"Fetched balances: QRL={qrl_balance}, USDT={usdt_balance}")
+                else:
+                    logger.warning(f"Balance data structure unexpected: {balance_data.keys() if balance_data else 'None'}")
+            except Exception as e:
+                logger.warning(f"Error fetching balances: {e}")
             
             utilization = (
                 (current_position / config.trading.max_position_usdt * 100)

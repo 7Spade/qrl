@@ -33,6 +33,9 @@
 - Cloud Run deployment: Added `/health` endpoint for container health checks
 - Cloud Run deployment: Switched to Gunicorn for production server
 - Container startup: Added proper PORT environment variable handling
+- Balance display: Fixed balance fetching to use correct API method and data structure
+- Balance display: Added debug logging for balance data troubleshooting
+### Improved
 - **Reduced cognitive load**: Smaller, focused files instead of one large file
 - **Better separation of concerns**: UI, logic, and data handling are distinct
 - **Easier testing**: Components can be tested independently
