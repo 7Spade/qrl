@@ -37,8 +37,8 @@ env/
 # Environment variables
 .env
 
-# Database
-data/
+# Database (exclude root data directory but not src/data/)
+/data/
 *.db
 *.sqlite
 *.sqlite3
