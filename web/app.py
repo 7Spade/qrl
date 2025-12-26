@@ -1,3 +1,14 @@
+"""
+Web dashboard for monitoring QRL trading bot.
+
+This FastAPI application provides a simple web interface to view:
+- Current QRL/USDT price
+- Total position value
+- Last update timestamp
+
+Usage:
+    uvicorn app:app --reload
+"""
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
@@ -18,6 +29,17 @@ SYMBOL = "QRL/USDT"
 
 @app.get("/", response_class=HTMLResponse)
 def dashboard(request: Request):
+    """
+    Render the main dashboard page.
+    
+    Displays current market price, position value, and timestamp.
+    
+    Args:
+        request: FastAPI request object
+        
+    Returns:
+        HTMLResponse: Rendered dashboard HTML
+    """
     price = exchange.fetch_ticker(SYMBOL)["last"]
 
     with engine.connect() as conn:
