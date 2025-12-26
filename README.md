@@ -53,14 +53,9 @@ uvicorn web.app:app --reload
 gcloud builds submit --config cloudbuild.yaml
 ```
 
-**If you get 403 Forbidden error**, run this to allow public access:
+The deployment process automatically configures public access. The IAM policy binding is included in the Cloud Build configuration, so you don't need to manually run the `add-iam-policy-binding` command.
 
-```bash
-gcloud run services add-iam-policy-binding qrl-bot \
-  --region=asia-east1 \
-  --member="allUsers" \
-  --role="roles/run.invoker"
-```
+**Note**: After deployment, it may take 30-60 seconds for the service to be fully accessible. If you encounter a 403 error immediately after deployment, wait a moment and try again.
 
 ## 📊 Trading Strategy
 
@@ -142,13 +137,23 @@ gcloud scheduler jobs create http qrl-trader \
 ### Cloud Run Issues
 
 **403 Forbidden Error**:
+
+The updated deployment configuration automatically sets public access. If you still encounter this error:
+
+1. **Wait 30-60 seconds** - The service may be initializing
+2. **Verify IAM policy manually** (if needed):
 ```bash
-# Allow unauthenticated access
 gcloud run services add-iam-policy-binding qrl-bot \
   --region=asia-east1 \
   --member="allUsers" \
   --role="roles/run.invoker"
 ```
+3. **Check service status**:
+```bash
+gcloud run services describe qrl-bot --region=asia-east1
+```
+
+**Why this happens**: Google Cloud Run requires explicit IAM policy to allow unauthenticated access. The updated `cloudbuild.yaml` now includes this step automatically.
 
 **Port/Connection Issues**:
 - Cloud Run uses PORT environment variable (configured in Dockerfile)

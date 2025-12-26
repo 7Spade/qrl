@@ -3,6 +3,20 @@
 ## [Unreleased]
 
 ### Added
+- Explicit IAM policy binding step in Cloud Build configuration to prevent 403 Forbidden errors
+
+### Fixed
+- **403 Forbidden error** on Cloud Run deployment by adding explicit IAM policy binding step
+- Deployment configuration now automatically grants public access without manual intervention
+
+### Changed
+- Updated Cloud Build configuration to include automatic IAM policy setup
+- Enhanced README with clearer deployment instructions and better troubleshooting section
+- Improved explanation of why 403 errors occur and how the fix works
+
+## [Previous Releases]
+
+### Added
 - Google Cloud Run deployment support
   - Dockerfile for containerization
   - cloudbuild.yaml for automated deployment

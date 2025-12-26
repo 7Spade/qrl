@@ -29,6 +29,18 @@ steps:
       - '8080'
       - '--set-env-vars'
       - 'SYMBOL=QRL/USDT'
+  
+  # Explicitly set IAM policy to allow public access
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'services'
+      - 'add-iam-policy-binding'
+      - 'qrl-bot'
+      - '--region=asia-east1'
+      - '--member=allUsers'
+      - '--role=roles/run.invoker'
 
 images:
   - 'gcr.io/$PROJECT_ID/qrl-bot:${_IMAGE_TAG}'
