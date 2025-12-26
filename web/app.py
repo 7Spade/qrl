@@ -34,6 +34,9 @@ logger = logging.getLogger(__name__)
 app = FastAPI(title="QRL Trading Bot Dashboard")
 templates = Jinja2Templates(directory="web/views")
 
+# Mount static files directory for JavaScript modules
+app.mount("/static", StaticFiles(directory="web/static"), name="static")
+
 # Initialize components with error handling
 initialization_error = None
 try:
