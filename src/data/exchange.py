@@ -195,10 +195,17 @@ class ExchangeClient:
         if use_cache:
             cached_data = self._cache.get(cache_key)
             if cached_data:
+                print(f"📦 Using cached OHLCV data for {symbol} ({len(cached_data)} candles)")
                 return cached_data
 
         # Fetch from API
+        print(f"🔄 Fetching OHLCV from MEXC: {symbol}, timeframe={timeframe}, limit={limit}")
         data = self.exchange.fetch_ohlcv(symbol, timeframe, limit)
+        
+        if not data:
+            print(f"⚠️ MEXC returned empty OHLCV data for {symbol} with timeframe {timeframe}")
+        else:
+            print(f"✅ Fetched {len(data)} candles from MEXC")
 
         # Store in cache with configured TTL for OHLCV data
         self._cache.set(cache_key, data, ttl=self.cache_config.cache_ttl_ohlcv)

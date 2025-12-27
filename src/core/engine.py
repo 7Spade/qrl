@@ -89,6 +89,17 @@ class TradingEngine:
                 self.config.trading.timeframe,
                 limit=120,
             )
+            
+            # Validate OHLCV data is not empty
+            if not ohlcv or len(ohlcv) == 0:
+                self.logger.error(
+                    f"No OHLCV data available for {self.config.trading.symbol} "
+                    f"with timeframe {self.config.trading.timeframe}. "
+                    f"This could indicate: (1) Invalid trading pair, "
+                    f"(2) No historical data available, or (3) Exchange API issue."
+                )
+                sys.exit(0)
+            
             self.logger.debug("Market data fetched", {"candles": len(ohlcv)})
 
             # Step 2: Strategy analysis
