@@ -83,8 +83,8 @@ class TradingEngine:
         try:
             self.logger.info("Starting trading cycle")
 
-            # Step 1: Fetch market data
-            ohlcv = self.exchange.fetch_ohlcv(
+            # Step 1: Fetch market data with automatic timeframe fallback
+            ohlcv = self.exchange.fetch_ohlcv_with_fallback(
                 self.config.trading.symbol,
                 self.config.trading.timeframe,
                 limit=120,
@@ -94,9 +94,10 @@ class TradingEngine:
             if not ohlcv or len(ohlcv) == 0:
                 self.logger.error(
                     f"No OHLCV data available for {self.config.trading.symbol} "
-                    f"with timeframe {self.config.trading.timeframe}. "
-                    f"This could indicate: (1) Invalid trading pair, "
-                    f"(2) No historical data available, or (3) Exchange API issue."
+                    f"after trying multiple timeframes. "
+                    f"This could indicate: (1) Invalid trading pair symbol, "
+                    f"(2) Symbol format mismatch (try QRLUSDT instead of QRL/USDT), "
+                    f"(3) No trading history on MEXC, or (4) Exchange API issue."
                 )
                 sys.exit(0)
             

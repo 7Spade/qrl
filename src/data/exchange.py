@@ -212,6 +212,97 @@ class ExchangeClient:
 
         return data
 
+    def fetch_ohlcv_with_fallback(
+        self,
+        symbol: str,
+        timeframe: str = "1d",
+        limit: int = 120,
+        use_cache: bool = True,
+    ) -> List[List[Any]]:
+        """
+        Fetch OHLCV data with automatic fallback to alternative timeframes.
+        
+        If the requested timeframe returns no data, automatically tries
+        alternative timeframes in order: 1h, 4h, 15m.
+        
+        Args:
+            symbol: Trading pair symbol
+            timeframe: Primary candlestick timeframe to try first
+            limit: Number of candles to fetch
+            use_cache: Whether to use cache (default: True)
+        
+        Returns:
+            List of OHLCV candles
+            
+        Raises:
+            ccxt.NetworkError: Network connection failed after retries
+            ccxt.ExchangeError: Exchange API error
+        """
+        # Try primary timeframe first
+        print(f"🎯 Attempting to fetch {symbol} data with timeframe: {timeframe}")
+        data = self.fetch_ohlcv(symbol, timeframe, limit, use_cache)
+        
+        if data and len(data) > 0:
+            return data
+        
+        # Define fallback timeframes (most common to least common)
+        fallback_timeframes = ["1h", "4h", "15m", "5m"]
+        
+        # Remove the original timeframe from fallbacks if it's there
+        if timeframe in fallback_timeframes:
+            fallback_timeframes.remove(timeframe)
+        
+        print(f"⚠️ Primary timeframe '{timeframe}' returned no data")
+        print(f"🔄 Trying fallback timeframes: {', '.join(fallback_timeframes)}")
+        
+        # Try each fallback timeframe
+        for tf in fallback_timeframes:
+            print(f"   → Trying {tf}...")
+            data = self.fetch_ohlcv(symbol, tf, limit, use_cache)
+            
+            if data and len(data) > 0:
+                print(f"✅ Successfully fetched data with timeframe: {tf}")
+                print(f"💡 IMPORTANT: Update your .env file with: TIMEFRAME={tf}")
+                return data
+        
+        # If all timeframes failed, try alternative symbol formats
+        print(f"⚠️ All timeframes failed for {symbol}")
+        print(f"🔄 Trying alternative symbol formats...")
+        
+        # Try common symbol format variations
+        symbol_variations = []
+        if "/" in symbol:
+            # Try without slash (QRL/USDT -> QRLUSDT)
+            symbol_variations.append(symbol.replace("/", ""))
+        else:
+            # Try with slash (QRLUSDT -> QRL/USDT)
+            if "USDT" in symbol:
+                base = symbol.replace("USDT", "")
+                symbol_variations.append(f"{base}/USDT")
+        
+        for alt_symbol in symbol_variations:
+            print(f"   → Trying symbol format: {alt_symbol}")
+            try:
+                data = self.fetch_ohlcv(alt_symbol, timeframe, limit, use_cache=False)
+                if data and len(data) > 0:
+                    print(f"✅ Successfully fetched data with symbol: {alt_symbol}")
+                    print(f"💡 IMPORTANT: Update your .env file with: SYMBOL={alt_symbol}")
+                    return data
+            except Exception as e:
+                print(f"   ✗ Failed with {alt_symbol}: {e}")
+        
+        # All attempts failed
+        print(f"❌ Failed to fetch OHLCV data for {symbol} with any timeframe or format")
+        print(f"📋 Tried timeframes: {timeframe}, {', '.join(fallback_timeframes)}")
+        print(f"📋 Tried symbol formats: {symbol}, {', '.join(symbol_variations)}")
+        print(f"💡 Troubleshooting suggestions:")
+        print(f"   1. Verify symbol exists on MEXC: https://www.mexc.com/exchange")
+        print(f"   2. Check exact symbol format in MEXC API documentation")
+        print(f"   3. Verify the pair has active trading (not delisted)")
+        print(f"   4. Try manually on MEXC website to confirm it exists")
+        
+        return []
+
     def create_limit_buy_order(
         self, symbol: str, amount: float, price: float
     ) -> Dict[str, Any]:
